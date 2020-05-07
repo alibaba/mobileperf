@@ -129,7 +129,7 @@ class DeviceMonitor(object):
 
 
 if __name__ == '__main__':
-    monitor = DeviceMonitor("NVGILZSO99999999", "com.kaola", 2)
+    monitor = DeviceMonitor("NVGILZSO99999999", "com.taobao.taobao", 2)
     monitor.start(time.time())
     time.sleep(60)
     monitor.stop()

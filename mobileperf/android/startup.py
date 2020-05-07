@@ -368,7 +368,7 @@ class App():
 if __name__ == "__main__":
     # 来自于pyintaller的官网，多进程在windows系统下需要添加这句，否则会创建多个重复的进程，在mac和linux下不会有影响
     # multiprocessing.freeze_support()
-    #startup = StartUp("351BBJN3DJC8","com.kaola",2)
+    #startup = StartUp("351BBJN3DJC8","com.taobao.taobao",2)
     startup = StartUp()
     startup.run()
     # RuntimeData.start_time = "2019_03_07_10_57_58"

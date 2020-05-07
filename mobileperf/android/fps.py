@@ -313,8 +313,7 @@ class SurfaceStatsCollector(object):
 # 9223372036854775807     3618866251530   9223372036854775807
 
 # Google Pixel 2 Android8.0 dumpsys SurfaceFlinger --latency window 结果
-# C:\Users\luke01>adb -s HT7B81A05143 shell dumpsys SurfaceFlinger --latency com.n
-# etease.apm/com.example.sdkapp.TestListView
+# C:\Users\luke01>adb -s HT7B81A05143 shell dumpsys SurfaceFlinger --latency window_name
 # 16666666
         refresh_period = None
         timestamps = []

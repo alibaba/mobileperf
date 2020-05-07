@@ -268,18 +268,7 @@ class CpuCollector(object):
                     logger.error(e)
             elif len(list) > 1:#理论上由于在ps应用中添加的过滤信息，这个判断不会进来，为了增加一个应用多个pids的适配，现将算法放在这，以便后续扩展,
                 '''
-                更新下该问题在HOOK5shang 出现过，即完全相同的一个包名出现了多个pid：
-                u0_a35    3709  2148  0      0     ffffffff 00000000 Z com.kaola
-    u0_a35    3998  2148  0      0     ffffffff 00000000 Z .kaola:location
-    u0_a35    8312  2148  1288492 196536 ffffffff 00000000 S com.kaola
-    u0_a35    8367  2148  1081748 62644 ffffffff 00000000 S com.kaola:push
-    u0_a35    8427  2148  1080164 62496 ffffffff 00000000 S com.kaola:nim
-    u0_a35    8466  8312  87120  22796 ffffffff 00000000 S /data/app/com.kaola-1/lib
-    /arm/libweexjsb.so
-    u0_a35    8478  2148  0      0     ffffffff 00000000 Z com.kaola
-    u0_a35    8542  2148  0      0     ffffffff 00000000 Z .kaola:location
-    u0_a35    8594  2148  1084540 66348 ffffffff 00000000 S com.kaola:web
-    u0_a35    8719  2148  0      0     ffffffff 00000000 Z .kaola:location         
+                更新下该问题在HOOK5shang 出现过，即完全相同的一个包名出现了多个pid：       
                 '''
                 logger.debug(" cpu pck all is zombie: " + str(self._all_process_is_zombie(list)))
                 if self._all_process_is_zombie(list):#如果这个list中的进程都是僵尸进程直接返回零
