@@ -16,8 +16,7 @@ mobileperf is a Python PC tool  that can collect Android performance data: cpu,m
 - Python3，recommend python3.7
 - adb，ensure system path contains adb
 
-- edit config file in mobileperf root dir,example
-[config.conf](https://github.com/looklukelu/mobileperf/blob/master/config.png)
+- edit config file in mobileperf root dir,example config.conf
 - run ,in mobileperf root dir，mac or linux execute sh run.sh ,windows double click run.bat
 
 # [简体中文]
