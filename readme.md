@@ -17,7 +17,7 @@ mobileperf is a Python PC tool  that can collect Android performance data: cpu,m
 - adb，ensure system path contains adb
 
 - edit config file in mobileperf root dir,example config.conf
-- run ,in mobileperf root dir，mac or linux execute sh run.sh ,windows double click run.bat
+- run ,in mobileperf root dir，mac or linux execute sh run.sh ,windows double click run.bat,end test wait timeout or click ctrl+C
 
 # [简体中文]
 
@@ -37,4 +37,4 @@ mobileperf is python PC 工具，可以收集Android性能数据: cpu 内存 流
 - 安装adb，确保adb devices能找到设备
 - 修改配置文件，示例参考根目录下config.conf
 
-- 运行，mac、linux 在mobileperf工具根目录下执行sh run.sh，windows 双击run.bat
+- 运行，mac、linux 在mobileperf工具根目录下执行sh run.sh，windows 双击run.bat，结束测试，等待设置测试时长到或按Ctrl+C
