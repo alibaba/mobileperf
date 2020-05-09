@@ -187,7 +187,7 @@ class PowerCollector(object):
                 if not self.power_queue:#为了本地单个脚本运行
                     power_tmp_list[0] = TimeUtils.formatTimeStamp(power_tmp_list[0])
                     try:
-                        with open(power_device_file,'a+') as writer:
+                        with open(power_device_file,'a+',encoding="utf-8") as writer:
                             writer_p = csv.writer(writer, lineterminator='\n')
                             writer_p.writerow(power_tmp_list)
                     except RuntimeError as e:

@@ -95,7 +95,7 @@ class ThreadNumPackageCollector(object):
                     self.thread_queue.put(thread_pck_info)
                 if not self.thread_queue:#为了本地单个文件运行
                     try:
-                        with open(thread_num_file, 'a+') as thread_writer:
+                        with open(thread_num_file, 'a+',encoding="utf-8") as thread_writer:
                             writer_p = csv.writer(thread_writer, lineterminator='\n')
                             thread_pck_info[0] = current_time
                             writer_p.writerow(thread_pck_info)

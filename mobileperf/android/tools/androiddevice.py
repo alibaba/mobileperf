@@ -316,7 +316,7 @@ class ADB(object):
         # 如果失去连接后，adb又正常连接了
         if not self.before_connect and self.after_connect:
             cpu_uptime_file = os.path.join(RuntimeData.package_save_path, "uptime.txt")
-            with open(cpu_uptime_file, "a+") as writer:
+            with open(cpu_uptime_file, "a+",encoding = "utf-8") as writer:
                 writer.write(TimeUtils.getCurrentTimeUnderline() + " /proc/uptime:" + self.run_adb_cmd("shell cat /proc/uptime") + "\n")
             self.before_connect = True
         ret = self.run_adb_cmd('shell', '%s' % cmd, **kwds)
@@ -448,9 +448,6 @@ class ADB(object):
     def bugreport(self, save_path):
         '''adb bugreport ~/Downloads/bugreport.zip
         '''
-        # 抓包时使用 root权限抓包，在这里先修改抓到的包的 所有者和所在组，否则后面的pull_file有可能由于权限问题失败
-        #         self.run_root_shell_cmd('chown shell:shell %s' % src_path)
-
         result = self.run_adb_cmd('bugreport', save_path, timeout=180)
         return result
 
@@ -477,9 +474,6 @@ class ADB(object):
     def pull_file(self, src_path, dst_path):
         '''从手机中拉取文件
         '''
-        # 抓包时使用 root权限抓包，在这里先修改抓到的包的 所有者和所在组，否则后面的pull_file有可能由于权限问题失败
-        #         self.run_root_shell_cmd('chown shell:shell %s' % src_path)
-
         result = self.run_adb_cmd('pull', src_path, dst_path, timeout=180)
         if result and 'failed to copy' in result:
             logger.error("failed to pull file:" + src_path)

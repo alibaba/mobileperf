@@ -182,7 +182,7 @@ class MemInfoPackageCollector(object):
         time_old = time.time()
         out = self.device.adb.run_shell_cmd('dumpsys meminfo')
         meminfo_file = os.path.join(RuntimeData.package_save_path, 'dumpsys_meminfo.txt')
-        with open(meminfo_file, "a+") as writer:
+        with open(meminfo_file, "a+",encoding="utf-8") as writer:
             writer.write(TimeUtils.getCurrentTime()+" dumpsys meminfo info:\n")
             writer.write(out+"\n\n")
             # self.num = 0
@@ -205,7 +205,7 @@ class MemInfoPackageCollector(object):
         #避免：在windows 无法创建文件名，不能有冒号:
         process_rename = process.replace(":","_")
         meminfo_file = os.path.join(RuntimeData.package_save_path, 'dumpsys_meminfo_%s.txt'%process_rename)
-        with open(meminfo_file, "a+") as writer:
+        with open(meminfo_file, "a+",encoding="utf-8") as writer:
             writer.write(TimeUtils.getCurrentTime()+" dumpsys meminfo package info:\n")
             if out:
                 writer.write(out+"\n\n")
@@ -231,16 +231,16 @@ class MemInfoPackageCollector(object):
         pid_file = os.path.join(RuntimeData.package_save_path, 'pid_change.csv')
         for package in self.packages:
             pss_detail_file = os.path.join(RuntimeData.package_save_path, 'pss_%s.csv'%package.split(".")[-1].replace(":","_"))
-            with open(pss_detail_file, 'a+') as df:
+            with open(pss_detail_file, 'a+',encoding="utf-8") as df:
                 csv.writer(df, lineterminator='\n').writerow(pss_detail_titile)
         try:
-            with open(mem_file, 'a+') as df:
+            with open(mem_file, 'a+',encoding="utf-8") as df:
                 csv.writer(df, lineterminator='\n').writerow(mem_list_titile)
                 if self.mem_queue:
                     mem_file_dic = {'mem_file': mem_file}
                     self.mem_queue.put(mem_file_dic)
 
-            with open(pid_file, 'a+') as df:
+            with open(pid_file, 'a+',encoding="utf-8") as df:
                 csv.writer(df, lineterminator='\n').writerow(pid_list_titile)
         except RuntimeError as e:
             logger.error(e)
@@ -268,7 +268,7 @@ class MemInfoPackageCollector(object):
                     pss_detail_file = os.path.join(RuntimeData.package_save_path,'pss_%s.csv' % package.split(".")[-1].replace(":","_"))
                     pss_detail_list= [TimeUtils.formatTimeStamp(collection_time),package,mem_pck_snapshot.pid,mem_pck_snapshot.totalPSS,
                                       mem_pck_snapshot.javaHeap,mem_pck_snapshot.nativeHeap,mem_pck_snapshot.system]
-                    with open(pss_detail_file, 'a+') as pss_writer:
+                    with open(pss_detail_file, 'a+',encoding="utf-8") as pss_writer:
                         writer_p = csv.writer(pss_writer, lineterminator='\n')
                         writer_p.writerow(pss_detail_list)
                 #         写到pss_detail表格中
@@ -329,7 +329,7 @@ class MemInfoPackageCollector(object):
                             if len(old_package_pid_pss_list) == len(self.packages):
                                 pid_list.extend([old_package_pid_pss_list[i]["package"],old_package_pid_pss_list[i]["pid"]])
                         try:
-                            with open(pid_file, 'a+') as pid_writer:
+                            with open(pid_file, 'a+',encoding="utf-8") as pid_writer:
                                 writer_p = csv.writer(pid_writer, lineterminator='\n')
                                 writer_p.writerow(pid_list)
                                 logger.debug("write to file:" + pid_file)
@@ -343,7 +343,7 @@ class MemInfoPackageCollector(object):
                         self.mem_queue.put(gather_list)
                     if not self.mem_queue:#为了本地单个文件运行
                         try:
-                            with open(mem_file, 'a+') as mem_writer:
+                            with open(mem_file, 'a+',encoding="utf-8") as mem_writer:
                                 writer_p = csv.writer(mem_writer, lineterminator='\n')
                                 writer_p.writerow(gather_list)
                                 logger.debug("write to file:" + mem_file)

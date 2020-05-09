@@ -340,7 +340,7 @@ class StartUp(object):
 
     def save_device_info(self):
         device_file = os.path.join(RuntimeData.package_save_path,"device_test_info.txt")
-        with open(device_file,"w+") as writer:
+        with open(device_file,"w+",encoding="utf-8") as writer:
             writer.write("device serialnum:"+self.serialnum+"\n")
             writer.write("device model:"+self.device.adb.get_phone_brand()+" "+self.device.adb.get_phone_model()+"\n")
             writer.write("test package:" + self.packages[0] + "\n")
@@ -349,7 +349,7 @@ class StartUp(object):
 
     def add_device_info(self,key,value):
         device_file = os.path.join(RuntimeData.package_save_path,"device_test_info.txt")
-        with open(device_file,"a+") as writer:
+        with open(device_file,"a+",encoding="utf-8") as writer:
             writer.write(key+":"+value+"\n")
 
     def check_exit_signal_quit(self):

@@ -92,7 +92,7 @@ class DeviceMonitor(object):
                     activity_tuple=(TimeUtils.getCurrentTime(),self.current_activity)
                     # 写文件
                     try:
-                        with open(self.activity_file, 'a+') as writer:
+                        with open(self.activity_file, 'a+',encoding="utf-8") as writer:
                             writer_p = csv.writer(writer, lineterminator='\n')
                             writer_p.writerow(activity_tuple)
                     except RuntimeError as e:

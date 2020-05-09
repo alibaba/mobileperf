@@ -161,7 +161,7 @@ class CpuCollector(object):
                 if not self.cpu_queue:#为了让单个脚本运行
                     gather_list[0] = TimeUtils.formatTimeStamp(gather_list[0])
                     try:
-                        with open(cpu_file, 'a+') as f:
+                        with open(cpu_file, 'a+',encoding="utf-8") as f:
                             csv.writer(f, lineterminator='\n').writerow(gather_list)
                             logger.debug("write to file:"+cpu_file)
                             logger.debug(gather_list)

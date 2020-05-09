@@ -305,7 +305,7 @@ class CpuCollector(object):
         out = str(out,"utf-8")
         out.replace('\r','')
         top_file = os.path.join(RuntimeData.package_save_path, 'top.txt')
-        with open(top_file, "a+") as writer:
+        with open(top_file, "a+",encoding="utf-8") as writer:
             writer.write(TimeUtils.getCurrentTime() + " top info:\n")
             writer.write(out + "\n\n")
         #避免文件过大，超过100M清理
@@ -317,7 +317,7 @@ class CpuCollector(object):
         out = self.device.adb.run_shell_cmd("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq")
         out.replace('\r', '')
         max_freq_file = os.path.join(RuntimeData.package_save_path, 'scaling_max_freq.txt')
-        with open(max_freq_file, "a+") as writer:
+        with open(max_freq_file, "a+",encoding="utf-8") as writer:
             writer.write(TimeUtils.getCurrentTime() + " scaling_max_freq:\n")
             writer.write(out + "\n\n")
 
@@ -359,7 +359,7 @@ class CpuCollector(object):
                 #校准时间，由于top执行需要耗时，需要将这个损耗加上去
                 logger.debug("INFO: CpuMonitor save cpu_device_list: " + str(self.cpu_list))
                 try:
-                    with open(cpu_file, 'a+') as df:
+                    with open(cpu_file, 'a+',encoding="utf-8") as df:
                         csv.writer(df, lineterminator='\n').writerow(self.cpu_list)
                         del self.cpu_list[:]
                 except RuntimeError as e:

@@ -95,7 +95,7 @@ class FdInfoPackageCollector(object):
                     self.fd_queue.put(fd_pck_info)
                 if not self.fd_queue:#为了本地单个文件运行
                     try:
-                        with open(fd_file, 'a+') as fd_writer:
+                        with open(fd_file, 'a+',encoding="utf-8") as fd_writer:
                             writer_p = csv.writer(fd_writer, lineterminator='\n')
                             fd_pck_info[0] = current_time
                             writer_p.writerow(fd_pck_info)

@@ -186,7 +186,7 @@ class TrafficCollecor(object):
                 if not self.traffic_queue:#为了本地单个文件单独运行
                     traffic_list_temp[0] = TimeUtils.formatTimeStamp(traffic_list_temp[0])
                     try:
-                        with open(traffic_file, 'a+') as f:
+                        with open(traffic_file, 'a+',encoding="utf-8") as f:
                             writer = csv.writer(f, lineterminator='\n')
                             writer.writerow(traffic_list_temp)
                     except RuntimeError as e:
@@ -282,7 +282,7 @@ class TrafficMonitor(object):
         pass
 
 if __name__ == "__main__":
-    monitor = TrafficMonitor("ABC-123456789", "com.alibaba.ailabs.autobot", 1)
+    monitor = TrafficMonitor("UYT5T18615007121", "com.taobao.taobao", 5)
     monitor.start(TimeUtils.getCurrentTime())
     time.sleep(600)
     monitor.stop()

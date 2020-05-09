@@ -158,7 +158,7 @@ class SurfaceStatsCollector(object):
                     logger.debug('FPS:%2s'%fps)
                     tmp_list = [TimeUtils.getCurrentTimeUnderline(),fps]
                     try:
-                        with open(fps_file, 'a+') as f:
+                        with open(fps_file, 'a+',encoding="utf-8") as f:
                             # tmp_list[0] = TimeUtils.formatTimeStamp(tmp_list[0])
                             csv.writer(f, lineterminator='\n').writerow(tmp_list)
                     except RuntimeError as e:
@@ -174,7 +174,7 @@ class SurfaceStatsCollector(object):
                         self.fps_queue.put(fps_list)
                     if not self.fps_queue:#为了让单个脚本运行时保存数据
                         try:
-                            with open(fps_file, 'a+') as f:
+                            with open(fps_file, 'a+',encoding="utf-8") as f:
                                 tmp_list = copy.deepcopy(fps_list)
                                 tmp_list[0] = TimeUtils.formatTimeStamp(tmp_list[0])
                                 csv.writer(f, lineterminator='\n').writerow(tmp_list)

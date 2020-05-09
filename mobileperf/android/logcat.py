@@ -101,7 +101,7 @@ class LogcatMonitor(Monitor):
             if tag in log_line:
                 logger.debug("exception Info: " + log_line)
                 tmp_file = os.path.join(RuntimeData.package_save_path, 'exception.log')
-                with open(tmp_file, 'a+') as f:
+                with open(tmp_file, 'a+',encoding="utf-8") as f:
                     f.write(log_line + '\n')
                 #     这个路径 空格会有影响
                 process_stack_log_file = os.path.join(RuntimeData.package_save_path, 'process_stack_%s_%s.log' % (
@@ -128,7 +128,6 @@ class LaunchTime(object):
         :return:void
         '''
         # logger.debug(log_line)
-        # add begin by liurui
         # 08-28 10:57:30.229 18882 19137 D IC5: CLogProducer == > code = 0, uuid = 4FE71E350379C64611CCD905938C10CA, eventType = performance, eventName = am_activity_launch_timeme, \
         #    log_time = 2019-08-28 10:57:30.229, contextInfo = {"tag": "am_activity_launch_time", "start_time": "2019-08-28 10:57:16",
         #                              "activity_name_original": "com.android.settings\/.FallbackHome",
@@ -181,7 +180,7 @@ class LaunchTime(object):
         perf_data['launch_time'].append(dic)
         # perf_queue.put(perf_data)
 
-        with open(tmp_file,"a+") as f:
+        with open(tmp_file,"a+",encoding="utf-8") as f:
             csvwriter = csv.writer(f, lineterminator='\n')#这种方式可以去除csv的空行
             logger.debug("save launchtime data to csv: " + str(self.launch_list))
             csvwriter.writerows(self.launch_list)
