@@ -114,18 +114,82 @@ class TrafficSnapshot(object):
     def __repr__(self):
         return "TrafficSnapshot, " + "package: " +str(self.packagename) + " uid bytes: " + str(self.total_uid_bytes) + " uid pcket byte: " + str(self.total_uid_packets)
 
+class NetDevInfo(object):
+    '''
+    解析proc/net/dev 结果 解析/proc/%d/net/dev 结果 输出格式一样
+    示例结果
+    Inter-|   Receive                                                |  Transmit
+         face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+        rmnet4:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_tun03:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_r_ims01:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_tun02:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        dummy0:       0       0    0    0    0     0          0         0     1610      23    0    0    0     0       0          0
+        rmnet2:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_tun11:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_ims00:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_tun10:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_emc0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_tun13:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_tun00:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_tun04:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet5:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+         wlan0: 1241518561  840807    0    0    0     0          0         7  7225770   73525    0    6    0     0       0          0
+        rmnet_r_ims00:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet3:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_tun01:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+          sit0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_tun14:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        ip_vti0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        ip6tnl0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet1:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        ip6_vti0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_r_ims11:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_r_ims10:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet6:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+        rmnet_tun12:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+            lo: 3796620     292    0    0    0     0          0         0  3796620     292    0    0    0     0       0          0
+        rmnet_ims10:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+
+    '''
+    def __init__(self, source):
+        self.source = source
+        self.wifi_total = 0
+        self.wifi_rx = 0
+        self.wifi_tx = 0
+        self._parse()
+
+
+    def _parse(self):
+        sp_lines = self.source.split('\n')
+        for line in sp_lines:
+            # wlan0: 1241508864 840739 0 0 0 0 0 7 7149177 73416 0 6 0 0 0 0
+            # 获取其中 接受流量1241508864 发送流量7149177
+            if "wlan0:" in line:
+                items = line.split()
+                self.wifi_rx = int(items[1])
+                self.wifi_tx = int(items[9])
+                self.wifi_total = self.wifi_rx + self.wifi_tx
+                logger.debug("wifi_rx : "+items[1]+" wifi_tx : "+items[9]+" total wifi:"+str(self.wifi_total))
+
+    def __repr__(self):
+        return "NetDevInfo "
+
 class TrafficCollecor(object):
-    def __init__(self, device, packagename, interval=1.0,timeout=24*60 * 60, traffic_queue = None):
+    def __init__(self, device, packages, interval=1.0,timeout=24*60 * 60, traffic_queue = None):
         self.device = device
-        self.packagename = packagename
+        self.packages = packages
         self._interval = interval
         self._timeout = timeout
         self._stop_event = threading.Event()
         self.traffic_queue = traffic_queue
+        self.sdk_version = self.device.adb.get_sdk_version()
 
         #是否首次启动，默认是
         self.traffic_init = True
         self.traffic_init_dic = {}
+
 
     def start(self,start_time):
         logger.debug("INFO: TrafficCollecor  start...")
@@ -137,16 +201,44 @@ class TrafficCollecor(object):
         out.replace('\r', '')
         return TrafficSnapshot(out, packagename, uid)
 
+    def _cat_traffic_device_dev(self):
+        out = self.device.adb.run_shell_cmd("cat /proc/net/dev")
+        # traffic_file = os.path.join(RuntimeData.package_save_path, 'traffic.txt')
+        # with open(traffic_file, "a+", encoding="utf-8") as writer:
+        #     writer.write(TimeUtils.getCurrentTime() + " cat /proc/net/dev info:\n")
+        #     writer.write(out + "\n\n")
+        out.replace('\r', '')
+        return NetDevInfo(out)
+
+    def _cat_traffic_pid_dev(self,pid):
+        out = self.device.adb.run_shell_cmd("cat /proc/%d/net/dev"%pid)
+        # traffic_file = os.path.join(RuntimeData.package_save_path, 'traffic.txt')
+        # with open(traffic_file, "a+", encoding="utf-8") as writer:
+        #     writer.write(TimeUtils.getCurrentTime() + " cat /proc/"+str(pid)+"/net/dev info:\n")
+        #     writer.write(out + "\n\n")
+        out.replace('\r', '')
+        return NetDevInfo(out)
+
     def _collect_traffic_thread(self,start_time):
+        # < android10 用/proc/net/xt_qtaguid/stats 获取uid 流量，Android10 找不到该文件
+        if self.sdk_version < 29:
+            self.get_traffic_with_stats()
+        else:
+            # android 10 用 /proc/net/dev  /proc/pid/net/dev 获取整机 pid wifi流量
+            self.get_traffic_with_dev()
+
+    def get_traffic_with_stats(self):
         end_time = time.time() + self._timeout
-        uid = TrafficUtils.getUID(self.device, self.packagename)
-        traffic_list_title = ("datetime","packagename","uid","uid_total(KB)", "uid_total_packets", "rx(KB)", "rx_packets","tx(KB)","tx_packets","fg(KB)","bg(KB)","lo(KB)")
+        uid = TrafficUtils.getUID(self.device, self.packages[0])
+        traffic_list_title = (
+        "datetime", "packagename", "uid", "uid_total(KB)", "uid_total_packets", "rx(KB)", "rx_packets", "tx(KB)",
+        "tx_packets", "fg(KB)", "bg(KB)", "lo(KB)")
         traffic_file = os.path.join(RuntimeData.package_save_path, 'traffics_uid.csv')
         try:
             with open(traffic_file, 'a+') as df:
                 csv.writer(df, lineterminator='\n').writerow(traffic_list_title)
                 if self.traffic_queue:
-                    traffic_file_dic = {'traffic_file':traffic_file}
+                    traffic_file_dic = {'traffic_file': traffic_file}
                     self.traffic_queue.put(traffic_file_dic)
         except RuntimeError as e:
             logger.error(e)
@@ -154,11 +246,12 @@ class TrafficCollecor(object):
         while not self._stop_event.is_set() and time.time() < end_time:
             try:
                 before = time.time()
-                logger.debug("----------------- into _collect_traffic_thread loop thread is : " + str(threading.current_thread().name) + ", current uid is : "+ str(uid))
-                traffic_snapshot = self._cat_traffic_data(self.packagename, uid)
+                logger.debug("----------------- into _collect_traffic_thread loop thread is : " + str(
+                    threading.current_thread().name) + ", current uid is : " + str(uid))
+                traffic_snapshot = self._cat_traffic_data(self.packages[0], uid)
 
                 if traffic_snapshot.source == '' or traffic_snapshot.source == None:
-                    continue#获取不到值的时候，直接不执行下面的代码了，缺一个
+                    continue  # 获取不到值的时候，直接不执行下面的代码了，缺一个
                     # retry_count = retry_count - 1
                     # if retry_count <= 0:
                     #     logger.debug("traffic, can't get traffic info, try six times, break...")
@@ -170,28 +263,109 @@ class TrafficCollecor(object):
                 traffic_snapshot = self.get_data_from_threadstart(traffic_snapshot)
 
                 collection_time = time.time()
-                logger.debug(" collection time in traffic is : " +str(collection_time))
+                logger.debug(" collection time in traffic is : " + str(collection_time))
                 traffic_list_temp = [collection_time, traffic_snapshot.packagename, traffic_snapshot.uid,
-                                      TrafficUtils.byte2kb(traffic_snapshot.total_uid_bytes),
-                                      traffic_snapshot.total_uid_packets,
-                                      TrafficUtils.byte2kb(traffic_snapshot.rx_uid_bytes), traffic_snapshot.rx_uid_packets,
-                                      TrafficUtils.byte2kb(traffic_snapshot.tx_uid_bytes),
-                                      traffic_snapshot.tx_uid_packets, TrafficUtils.byte2kb(traffic_snapshot.fg_bytes),
-                                      TrafficUtils.byte2kb(traffic_snapshot.bg_bytes),
-                                      TrafficUtils.byte2kb(traffic_snapshot.lo_uid_bytes)]
+                                     TrafficUtils.byte2kb(traffic_snapshot.total_uid_bytes),
+                                     traffic_snapshot.total_uid_packets,
+                                     TrafficUtils.byte2kb(traffic_snapshot.rx_uid_bytes),
+                                     traffic_snapshot.rx_uid_packets,
+                                     TrafficUtils.byte2kb(traffic_snapshot.tx_uid_bytes),
+                                     traffic_snapshot.tx_uid_packets, TrafficUtils.byte2kb(traffic_snapshot.fg_bytes),
+                                     TrafficUtils.byte2kb(traffic_snapshot.bg_bytes),
+                                     TrafficUtils.byte2kb(traffic_snapshot.lo_uid_bytes)]
                 logger.debug(traffic_list_temp)
                 if self.traffic_queue:
                     self.traffic_queue.put(traffic_list_temp)
 
-                if not self.traffic_queue:#为了本地单个文件单独运行
+                if not self.traffic_queue:  # 为了本地单个文件单独运行
                     traffic_list_temp[0] = TimeUtils.formatTimeStamp(traffic_list_temp[0])
                     try:
-                        with open(traffic_file, 'a+',encoding="utf-8") as f:
+                        with open(traffic_file, 'a+', encoding="utf-8") as f:
                             writer = csv.writer(f, lineterminator='\n')
                             writer.writerow(traffic_list_temp)
                     except RuntimeError as e:
                         logger.error(e)
 
+                after = time.time()
+                time_consume = after - before
+                logger.debug(" -----------traffic timeconsumed: " + str(time_consume))
+                # 校准时间，由于执行命令行需要耗时，需要将这个损耗加上去
+                delta_inter = self._interval - time_consume
+                if delta_inter > 0:
+                    time.sleep(delta_inter)
+            except RuntimeError as e:
+                logger.error(" trafficstats RuntimeError ")
+                logger.error(e)
+            except Exception as e:
+                logger.error("an exception hanpend in traffic thread , reason unkown! e: ")
+                s = traceback.format_exc()
+                logger.debug(s)
+                if self.traffic_queue:
+                    self.traffic_queue.task_done()
+
+    def get_traffic_with_dev(self):
+        end_time = time.time() + self._timeout
+        traffic_title = ["datetime", "device_wifi_total(KB)", "device_wifi_receive(KB)", "device_wifi_transport(KB)"]
+        traffic_file = os.path.join(RuntimeData.package_save_path, 'traffic.csv')
+        for i in range(0, len(self.packages)):
+            traffic_title.extend(["package", "pid", "pid_wifi_rx(KB)","pid_wifi_tx(KB)","pid_wifi_total(KB)"])
+        if len(self.packages) > 1:
+            traffic_title.append("total_pid_wifi(kB)")
+        try:
+            with open(traffic_file, 'a+') as df:
+                csv.writer(df, lineterminator='\n').writerow(traffic_title)
+        except RuntimeError as e:
+            logger.error(e)
+        self.device_init_net = None
+        self.pck_init_net_list = []
+        while not self._stop_event.is_set() and time.time() < end_time:
+            try:
+                before = time.time()
+                logger.debug("--------- into _collect_traffic_thread loop thread is : " + str(threading.current_thread().name))
+                device_cur_net = self._cat_traffic_device_dev()
+
+                if device_cur_net.source == '' or device_cur_net.source == None:
+                    continue
+
+                if self.traffic_init:
+                    self.device_init_net = device_cur_net
+                    # self.traffic_init = False
+                device_grow = self.get_net_from_begin(self.device_init_net,device_cur_net)
+                collection_time = time.time()
+                logger.debug(" collection time in traffic is : " + str(collection_time))
+                net_row = [collection_time, TrafficUtils.byte2kb(device_grow.wifi_total),
+                           TrafficUtils.byte2kb(device_grow.wifi_rx),
+                           TrafficUtils.byte2kb(device_grow.wifi_tx)]
+                self.total_pck_net = 0
+                for i in range(0, len(self.packages)):
+                    pid = self.device.adb.get_pid_from_pck(self.packages[i])
+                    pck_net_info = self._cat_traffic_pid_dev(pid)
+                    if not pck_net_info.source:
+                        logger.error("package net dev failed %s:"%self.packages[i])
+                        continue
+                    if self.traffic_init:
+                        self.pck_init_net_list.append(pck_net_info)
+                        if i == len(self.packages)-1:
+                            self.traffic_init = False
+                    pck_grow = self.get_net_from_begin(self.pck_init_net_list[i],pck_net_info)
+                    self.total_pck_net = self.total_pck_net + pck_grow.wifi_total
+                    net_row.extend([self.packages[i],pid,TrafficUtils.byte2kb(pck_grow.wifi_rx),
+                                    TrafficUtils.byte2kb(pck_grow.wifi_tx),TrafficUtils.byte2kb(pck_grow.wifi_total)])
+
+                if len(self.packages)>1:
+                    net_row.append(TrafficUtils.byte2kb(self.total_pck_net))
+
+                if self.traffic_queue:
+                    self.traffic_queue.put(net_row)
+                if not self.traffic_queue:  # 为了本地单个文件单独运行
+                    net_row[0] = TimeUtils.formatTimeStamp(net_row[0])
+                    try:
+                        with open(traffic_file, 'a+', encoding="utf-8") as f:
+                            writer = csv.writer(f, lineterminator='\n')
+                            writer.writerow(net_row)
+                    except RuntimeError as e:
+                        logger.error(e)
+                logger.debug(net_row)
                 after = time.time()
                 time_consume = after - before
                 logger.debug(" -----------traffic timeconsumed: " + str(time_consume))
@@ -241,6 +415,14 @@ class TrafficCollecor(object):
         logger.debug(traffic_snapshot)
         return traffic_snapshot
 
+    def get_net_from_begin(self,begin_net_info,current_net_info):
+        # 获取从当前开始的流量增值
+        net_info = NetDevInfo("")
+        net_info.wifi_total = current_net_info.wifi_total - begin_net_info.wifi_total
+        net_info.wifi_rx = current_net_info.wifi_rx - begin_net_info.wifi_rx
+        net_info.wifi_tx = current_net_info.wifi_tx - begin_net_info.wifi_tx
+        return net_info
+
     def stop(self):
         logger.debug("INFO: TrafficCollecor  stop...")
         if (self.collect_traffic_thread.isAlive()):
@@ -251,15 +433,15 @@ class TrafficCollecor(object):
                 self.traffic_queue.task_done()
 
 class TrafficMonitor(object):
-    def __init__(self, device_id, packagename, interval = 1.0,timeout=10 * 60, traffic_queue = None):
+    def __init__(self, device_id, packages, interval = 1.0, timeout=10 * 60, traffic_queue = None):
         self.device = AndroidDevice(device_id)
         self.stop_event = threading.Event()
-        self.package = packagename
-        self.traffic_colloctor = TrafficCollecor(self.device, packagename, interval, timeout,traffic_queue)
+        self.packages = packages
+        self.traffic_colloctor = TrafficCollecor(self.device, self.packages, interval, timeout, traffic_queue)
 
     def start(self,start_time):
         if not RuntimeData.package_save_path:
-            RuntimeData.package_save_path = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results', self.package, start_time)
+            RuntimeData.package_save_path = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results', self.packages[0], start_time)
             if not os.path.exists(RuntimeData.package_save_path):
                 os.makedirs(RuntimeData.package_save_path)
         self.start_time = start_time
@@ -282,9 +464,9 @@ class TrafficMonitor(object):
         pass
 
 if __name__ == "__main__":
-    monitor = TrafficMonitor("UYT5T18615007121", "com.taobao.taobao", 5)
+    monitor = TrafficMonitor("SJE7N17817000652", ["com.taobao.taobao"], 2)
     monitor.start(TimeUtils.getCurrentTime())
-    time.sleep(600)
+    time.sleep(60)
     monitor.stop()
 
 
