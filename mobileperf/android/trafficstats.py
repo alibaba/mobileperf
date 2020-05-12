@@ -155,9 +155,15 @@ class NetDevInfo(object):
     '''
     def __init__(self, source):
         self.source = source
+        self.mobile_total = 0
+        self.mobile_rx = 0
+        self.mobile_tx = 0
         self.wifi_total = 0
         self.wifi_rx = 0
         self.wifi_tx = 0
+        self.total = 0
+        self.rx = 0
+        self.tx = 0
         self._parse()
 
 
@@ -172,6 +178,17 @@ class NetDevInfo(object):
                 self.wifi_tx = int(items[9])
                 self.wifi_total = self.wifi_rx + self.wifi_tx
                 logger.debug("wifi_rx : "+items[1]+" wifi_tx : "+items[9]+" total wifi:"+str(self.wifi_total))
+                # 移动 3 4 5G 流量
+                # rmnet0: 362133448 298441 0 0 0 0 0 0 10641124 91012 0 0 0 0 0 0
+            if "rmnet0:" in line:
+                items = line.split()
+                self.mobile_rx = int(items[1])
+                self.mobile_tx = int(items[9])
+                self.mobile_total = self.wifi_rx + self.wifi_tx
+                logger.debug("mobile_rx : " + items[1] + " mobile_tx : " + items[9] + " total mobile:" + str(self.mobile_total))
+            self.rx = self.wifi_rx + self.mobile_rx
+            self.tx = self.wifi_tx + self.mobile_tx
+            self.total = self.wifi_total + self.mobile_total
 
     def __repr__(self):
         return "NetDevInfo "
@@ -305,12 +322,12 @@ class TrafficCollecor(object):
 
     def get_traffic_with_dev(self):
         end_time = time.time() + self._timeout
-        traffic_title = ["datetime", "device_wifi_total(KB)", "device_wifi_receive(KB)", "device_wifi_transport(KB)"]
+        traffic_title = ["datetime", "device_total(KB)", "device_receive(KB)", "device_transport(KB)"]
         traffic_file = os.path.join(RuntimeData.package_save_path, 'traffic.csv')
         for i in range(0, len(self.packages)):
-            traffic_title.extend(["package", "pid", "pid_wifi_rx(KB)","pid_wifi_tx(KB)","pid_wifi_total(KB)"])
+            traffic_title.extend(["package", "pid", "pid_rx(KB)","pid_tx(KB)","pid_total(KB)"])
         if len(self.packages) > 1:
-            traffic_title.append("total_pid_wifi(kB)")
+            traffic_title.append("total_proc_traffic(kB)")
         try:
             with open(traffic_file, 'a+') as df:
                 csv.writer(df, lineterminator='\n').writerow(traffic_title)
@@ -333,9 +350,9 @@ class TrafficCollecor(object):
                 device_grow = self.get_net_from_begin(self.device_init_net,device_cur_net)
                 collection_time = time.time()
                 logger.debug(" collection time in traffic is : " + str(collection_time))
-                net_row = [collection_time, TrafficUtils.byte2kb(device_grow.wifi_total),
-                           TrafficUtils.byte2kb(device_grow.wifi_rx),
-                           TrafficUtils.byte2kb(device_grow.wifi_tx)]
+                net_row = [collection_time, TrafficUtils.byte2kb(device_grow.total),
+                           TrafficUtils.byte2kb(device_grow.rx),
+                           TrafficUtils.byte2kb(device_grow.tx)]
                 self.total_pck_net = 0
                 for i in range(0, len(self.packages)):
                     pid = self.device.adb.get_pid_from_pck(self.packages[i])
@@ -349,8 +366,8 @@ class TrafficCollecor(object):
                             self.traffic_init = False
                     pck_grow = self.get_net_from_begin(self.pck_init_net_list[i],pck_net_info)
                     self.total_pck_net = self.total_pck_net + pck_grow.wifi_total
-                    net_row.extend([self.packages[i],pid,TrafficUtils.byte2kb(pck_grow.wifi_rx),
-                                    TrafficUtils.byte2kb(pck_grow.wifi_tx),TrafficUtils.byte2kb(pck_grow.wifi_total)])
+                    net_row.extend([self.packages[i],pid,TrafficUtils.byte2kb(pck_grow.rx),
+                                    TrafficUtils.byte2kb(pck_grow.tx),TrafficUtils.byte2kb(pck_grow.total)])
 
                 if len(self.packages)>1:
                     net_row.append(TrafficUtils.byte2kb(self.total_pck_net))
@@ -418,9 +435,9 @@ class TrafficCollecor(object):
     def get_net_from_begin(self,begin_net_info,current_net_info):
         # 获取从当前开始的流量增值
         net_info = NetDevInfo("")
-        net_info.wifi_total = current_net_info.wifi_total - begin_net_info.wifi_total
-        net_info.wifi_rx = current_net_info.wifi_rx - begin_net_info.wifi_rx
-        net_info.wifi_tx = current_net_info.wifi_tx - begin_net_info.wifi_tx
+        net_info.total = current_net_info.total - begin_net_info.total
+        net_info.rx = current_net_info.rx - begin_net_info.rx
+        net_info.tx = current_net_info.tx - begin_net_info.tx
         return net_info
 
     def stop(self):
@@ -464,7 +481,7 @@ class TrafficMonitor(object):
         pass
 
 if __name__ == "__main__":
-    monitor = TrafficMonitor("SJE7N17817000652", ["com.taobao.taobao"], 2)
+    monitor = TrafficMonitor("UYT5T18615007121", ["com.taobao.taobao"], 2)
     monitor.start(TimeUtils.getCurrentTime())
     time.sleep(60)
     monitor.stop()
