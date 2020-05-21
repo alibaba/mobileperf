@@ -11,7 +11,7 @@
 import os
 from datetime import datetime
 
-from excel import Excel
+from mobileperf.android.excel import Excel
 from mobileperf.common.log import logger
 from mobileperf.common.utils import TimeUtils
 
