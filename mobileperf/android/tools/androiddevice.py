@@ -758,54 +758,12 @@ class ADB(object):
             :param packagename: 目标包名
             :return: 返回目标包名的列表信息
             '''
-        # get list_process 有重复代码
-        results = self.run_shell_cmd('ps -A')
-        lines = results.replace('\r', '').splitlines()
-        # logger.debug(lines)
-        busybox = False
-        if lines[0].startswith('PID'): busybox = True
-
-        result_list = []
-        for line in lines:
-            # logger.debug(line)
-            if packagename in line:
-                items = line.split()
-
-                if not busybox:
-                    if len(items) < 9:
-                        err_msg = "ps命令返回格式错误：\n%s" % line
-                        if len(items) == 8:
-                            target_pkg = items[7]
-                            # 只保存与packagename完全相同的进程，对于以包名开头的其他进程将不会被保存，例如packagename:com.xx，com.xx:play不会保存
-                            if packagename == target_pkg:
-                                result_list.append(
-                                    {'pid': int(items[1]), 'uid': items[0], 'proc_name': items[-1],
-                                     'status': items[-2]})
-                        else:
-                            logger.error(err_msg)
-                    else:
-                        target_pck = items[-1]
-                        # 只保存与packagename完全相同的进程，对于以包名开头的其他进程将不会被保存，例如packagename:com.xx，com.xx:play不会保存
-                        if packagename == target_pck:
-                            result_list.append(
-                                {'pid': int(items[1]), 'uid': items[0], 'proc_name': items[-1], 'status': items[-2]})
-
-                else:  # busybox = True
-                    idx = 4
-                    cmd = items[idx]
-                    if len(cmd) == 1:
-                        # 有时候发现此处会有“N”
-                        idx += 1
-                        cmd = items[idx]
-                    idx += 1
-                    if cmd[0] == '{' and cmd[-1] == '}': cmd = items[idx]
-                    target_pkg = items[-1]
-                    if packagename == target_pkg:
-                        result_list.append(
-                            {'pid': int(items[0]), 'uid': items[1], 'proc_name': cmd, 'status': items[-2]})
-        if len(result_list) > 0:
-            logger.debug(" get pckinfo from ps: " + str(result_list))
-        return result_list
+        ps_list = self.list_process()
+        pck_list = []
+        for item in ps_list:
+            if item["proc_name"] == packagename:
+                pck_list.append(item)
+        return pck_list
 
     def get_process_stack(self, package_name, save_path):
         '''
@@ -1026,8 +984,12 @@ class ADB(object):
     def list_process(self):
         '''获取进程列表
         '''
-        import re
-        result = self.run_shell_cmd('ps -A')  # 不能使用grep
+        # <= 7.0 用ps, >=8.0 用ps -A android8.0 api level 26
+        result = None
+        if self.get_sdk_version() < 26:
+            result = self.run_shell_cmd('ps')  # 不能使用grep
+        else:
+            result = self.run_shell_cmd('ps -A')  # 不能使用grep
         result = result.replace('\r', '')
         lines = result.split('\n')
         busybox = False
@@ -1040,11 +1002,13 @@ class ADB(object):
                 if len(items) < 9:
                     err_msg = "ps命令返回格式错误：\n%s" % lines[i]
                     if len(items) == 8:
-                        result_list.append({'pid': int(items[1]), 'ppid': int(items[2]), 'proc_name': items[7]})
+                        result_list.append({'uid':items[0],'pid': int(items[1]), 'ppid': int(items[2]),
+                                            'proc_name': items[7],'status': items[-2]})
                     else:
                         logger.error(err_msg)
                 else:
-                    result_list.append({'pid': int(items[1]), 'ppid': int(items[2]), 'proc_name': items[8]})
+                    result_list.append({'uid': items[0],'pid': int(items[1]), 'ppid': int(items[2]),
+                                        'proc_name': items[8],'status': items[-2]})
             else:
                 idx = 4
                 cmd = items[idx]
@@ -1056,7 +1020,8 @@ class ADB(object):
                 if cmd[0] == '{' and cmd[-1] == '}': cmd = items[idx]
                 ppid = 0
                 if items[1].isdigit(): ppid = int(items[1])  # 有些版本中没有ppid
-                result_list.append({'pid': int(items[0]), 'ppid': ppid, 'proc_name': cmd})
+                result_list.append({'pid': int(items[0]), 'uid': items[1],'ppid': ppid,
+                                    'proc_name': cmd,'status': items[-2]})
         return result_list
 
     def kill_process(self, process_name):

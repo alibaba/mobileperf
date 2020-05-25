@@ -228,7 +228,7 @@ class CpuCollector(object):
         '''
         for i in range(0,len(self.packages)):
             cpu_pck_snapshot = CpuPckSnapshot(self.packages[i])
-            list = self._get_pckinfo_from_ps(self.packages[i])
+            list = self.device.adb.get_pckinfo_from_ps(self.packages[i])
             logger.debug("pids list len: "+str(len(list)))
             if len(list) == 1:#目前应用cpu的信息是按照pid来统计的，在包名完全确定的情况下返回对应的一条记录
                 try:
@@ -457,10 +457,6 @@ class CpuCollector(object):
         elif result > 100.00:
             result = 100.0
         return result
-
-    def _get_pckinfo_from_ps(self, packagename):
-        return self.device.adb.get_pckinfo_from_ps(packagename)
-
 
 class CpuMonitor(object):
     '''
