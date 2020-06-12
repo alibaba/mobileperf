@@ -1140,8 +1140,6 @@ class ADB(object):
             over_install:是否覆盖暗账
             downgrade:是否允许降版本安装
         '''
-        if isinstance(apk_path, unicode):
-            apk_path = apk_path.encode('utf8')
         if not over_install:
             # package_name = self._get_package_name(apk_path)
             # self.uninstall_apk(package_name)  # 先卸载，再安装
@@ -1164,34 +1162,6 @@ class ADB(object):
         return result.find('Success') >= 0
 
 
-class RemoteADB(ADB):
-    '''网络远程ADB
-    '''
-
-    def __init__(self, device_id):
-        super(RemoteADB, self).__init__(device_id)
-        from androiddriver.adb import RemoteADB
-        pos = self._device_id.find(':')
-        if pos > 0:
-            self._host_name = self._device_id[:pos]
-        self.remote_adb = RemoteADB.open_device(self._device_id)
-
-    def run_adb_cmd(self, cmd, *argv, **kwds):
-        ret = self.remote_adb.run_adb_cmd(cmd, *argv, **kwds)
-        return ret
-
-    def push_file(self, src_path, dst_path):
-        return self.remote_adb.push_file(src_path, dst_path)
-
-    def pull_file(self, src_path, dst_path):
-        # 抓包时使用 root权限抓包，在这里先修改抓到的包的 所有者和所在组，否则后面的pull_file有可能由于权限问题失败
-        self.run_shell_cmd('chown shell:shell %s' % src_path)
-        return self.remote_adb.pull_file(src_path, dst_path)
-
-    def forward(self, port1, port2, type='tcp'):
-        return self.remote_adb.forward(port1, port2, type)
-
-
 class AndroidDevice():
     '''封装Android设备基本操作
     '''
@@ -1202,10 +1172,6 @@ class AndroidDevice():
         #         现阶段暂时直接使用本地定义的adb
         if self.is_local:
             self.adb = ADB(device_id)
-        else:
-            self.adb = RemoteADB(device_id)
-
-    #         self.adb = RemoteADB(device_id)
 
     @staticmethod
     def is_local_device(device_id):

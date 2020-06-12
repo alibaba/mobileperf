@@ -105,7 +105,6 @@ class FileUtils(object):
         :param filePath:
         :return:
         '''
-        # filePath = unicode(filePath, 'utf8')
         fsize = os.path.getsize(filePath)
         fsize = fsize / float(1024 * 1024)
         return round(fsize, 4)
@@ -113,21 +112,18 @@ class FileUtils(object):
     @staticmethod
     def get_FileAccessTime(filePath):
         '''获取文件的访问时间'''
-        filePath = unicode(filePath, 'utf8')
         t = os.path.getatime(filePath)
         return t
 
     @staticmethod
     def get_FileCreateTime(filePath):
         '''获取文件的创建时间'''
-        filePath = unicode(filePath, 'utf8')
         t = os.path.getctime(filePath)
         return t
 
     @staticmethod
     def get_FileModifyTime(filePath):
         '''获取文件的修改时间'''
-        filePath = unicode(filePath, 'utf8')
         t = os.path.getmtime(filePath)
         return t
 
