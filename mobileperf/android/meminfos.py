@@ -273,8 +273,8 @@ class MemInfoPackageCollector(object):
                         writer_p.writerow(pss_detail_list)
                 #         写到pss_detail表格中
 
-                # 手机每5分钟 dumpheap一次
-                if (before - starttime_stamp)>300 or first_dump:
+                # 每隔dumpheap_freq分钟， dumpheap一次
+                if (before - starttime_stamp) > RuntimeData.config_dic["dumpheap_freq"] or first_dump:
                 #     先清理hprof文件
                     filelist = self.device.adb.list_dir(hprof_path)
                     if filelist:

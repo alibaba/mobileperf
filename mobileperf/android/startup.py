@@ -122,6 +122,7 @@ class StartUp(object):
         config_dic = self.check_config_option(config_dic, paser, "Common", "package")
         config_dic = self.check_config_option(config_dic, paser, "Common", "pid_change_focus_package")
         config_dic = self.check_config_option(config_dic, paser, "Common","frequency")
+        config_dic = self.check_config_option(config_dic, paser, "Common", "dumpheap_freq")
         config_dic = self.check_config_option(config_dic, paser, "Common", "timeout")
         config_dic = self.check_config_option(config_dic, paser, "Common", "serialnum")
         config_dic = self.check_config_option(config_dic, paser, "Common", "mailbox")
@@ -144,6 +145,8 @@ class StartUp(object):
                 config_dic[option] = parse.get(section, option)
                 if option == 'frequency':
                     config_dic[option] = (int)(parse.get(section, option))
+                if option == 'dumpheap_freq':#dumpheap 的单位是分钟
+                    config_dic[option] = (int)(parse.get(section, option))*60
                 if option == 'timeout':#timeout 的单位是分钟
                     config_dic[option] = (int)(parse.get(section, option))*60
                 if option in ["exceptionlog" ,"phone_log_path","space_size_check_path","package","pid_change_focus_package",
