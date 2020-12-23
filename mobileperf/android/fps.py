@@ -149,6 +149,7 @@ class SurfaceStatsCollector(object):
         twofilmstamp = 83.3 / 1000.0
         tempstamp = 0
         # 统计丢帧卡顿
+        
         jank = 0
         for index,timestamp in enumerate(timestamps):
             #前面四帧按超过166ms计算为卡顿
