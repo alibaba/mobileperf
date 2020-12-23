@@ -107,6 +107,75 @@ class SurfaceStatsCollector(object):
                 jank = 0
         return fps,jank
 
+
+    def _calculate_results_new(self, refresh_period, timestamps):
+        """Returns a list of SurfaceStatsCollector.Result.
+        不少手机第一列  第三列 数字完全相同
+        """
+
+        frame_count = len(timestamps)
+        if frame_count ==0:
+            fps = 0
+            jank = 0
+        elif frame_count == 1:
+            fps = 1
+            jank = 0
+        elif frame_count == 2 or frame_count ==3 or frame_count==4:
+            seconds = timestamps[-1][1] - timestamps[0][1]
+            if seconds > 0:
+                fps = int(round((frame_count - 1) / seconds))
+                jank = self._calculate_janky(timestamps)
+            else:
+                fps = 1
+                jank = 0
+        else:
+            seconds = timestamps[-1][1] - timestamps[0][1]
+            if seconds > 0:
+                fps = int(round((frame_count - 1) / seconds))
+                jank =self._calculate_jankey_new(timestamps)
+            else:
+                fps = 1
+                jank = 0
+        return fps,jank
+
+
+    def _calculate_jankey_new(self,timestamps):
+
+        '''同时满足两个条件计算为一次卡顿：
+            ①Display FrameTime>前三帧平均耗时2倍。
+            ②Display FrameTime>两帧电影帧耗时 (1000ms/24*2≈83.33ms)。
+            '''
+
+        twofilmstamp = 83.3 / 1000.0
+        tempstamp = 0
+        # 统计丢帧卡顿
+        jank = 0
+        for index,timestamp in enumerate(timestamps):
+            #前面四帧按超过166ms计算为卡顿
+            if (index == 0) or (index == 1) or (index == 2) or (index == 3):
+                if tempstamp == 0:
+                    tempstamp = timestamp[1]
+                    continue
+                # 绘制帧耗时
+                costtime = timestamp[1] - tempstamp
+                # 耗时大于阈值10个时钟周期,用户能感受到卡顿感
+                if costtime > self.jank_threshold:
+                    jank = jank + 1
+                tempstamp = timestamp[1]
+            elif index > 3:
+                currentstamp = timestamps[index][1]
+                lastonestamp = timestamps[index - 1][1]
+                lasttwostamp = timestamps[index - 2][1]
+                lastthreestamp = timestamps[index - 3][1]
+                lastfourstamp = timestamps[index - 4][1]
+                tempframetime = ((lastthreestamp - lastfourstamp) + (lasttwostamp - lastthreestamp) + (
+                        lastonestamp - lasttwostamp)) / 3 * 2
+                currentframetime = currentstamp - lastonestamp
+                if (currentframetime > tempframetime) and (currentframetime > twofilmstamp):
+                    jank = jank + 1
+        return jank
+
+
     def _calculate_janky(self,timestamps):
         tempstamp = 0
         #统计丢帧卡顿
@@ -167,7 +236,8 @@ class SurfaceStatsCollector(object):
                     refresh_period = data[0]
                     timestamps = data[1]
                     collect_time = data[2]
-                    fps,jank = self._calculate_results(refresh_period, timestamps)
+                    # fps,jank = self._calculate_results(refresh_period, timestamps)
+                    fps, jank = self._calculate_results_new(refresh_period, timestamps)
                     logger.debug('FPS:%2s Jank:%s'%(fps,jank))
                     fps_list=[collect_time,self.focus_window,fps,jank]
                     if self.fps_queue:
@@ -428,6 +498,7 @@ class FPSMonitor(Monitor):
             package_name = self.device.adb.get_foreground_process()
         self.package = package_name
         self.fpscollector = SurfaceStatsCollector(self.device, self.frequency, package_name,fps_queue,self.jank_threshold, self.use_legacy)
+
 
     def start(self,start_time):
         '''启动FPSMonitor日志监控器 
