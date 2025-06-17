@@ -315,7 +315,7 @@ class ADB(object):
         '''
         # 如果失去连接后，adb又正常连接了
         if not self.before_connect and self.after_connect:
-            cpu_uptime_file = os.path.join(RuntimeData.package_save_path, "uptime.txt")
+            cpu_uptime_file = os.path.join(RuntimeData.package_save_path[self.DEVICEID], "uptime.txt")
             with open(cpu_uptime_file, "a+",encoding = "utf-8") as writer:
                 writer.write(TimeUtils.getCurrentTimeUnderline() + " /proc/uptime:" + self.run_adb_cmd("shell cat /proc/uptime") + "\n")
             self.before_connect = True

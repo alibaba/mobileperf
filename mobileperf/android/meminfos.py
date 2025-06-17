@@ -181,7 +181,7 @@ class MemInfoPackageCollector(object):
         '''
         time_old = time.time()
         out = self.device.adb.run_shell_cmd('dumpsys meminfo')
-        meminfo_file = os.path.join(RuntimeData.package_save_path, 'dumpsys_meminfo.txt')
+        meminfo_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'dumpsys_meminfo.txt')
         with open(meminfo_file, "a+",encoding="utf-8") as writer:
             writer.write(TimeUtils.getCurrentTime()+" dumpsys meminfo info:\n")
             writer.write(out+"\n\n")
@@ -204,7 +204,7 @@ class MemInfoPackageCollector(object):
         # if self.num % 10 == 0:
         #避免：在windows 无法创建文件名，不能有冒号:
         process_rename = process.replace(":","_")
-        meminfo_file = os.path.join(RuntimeData.package_save_path, 'dumpsys_meminfo_%s.txt'%process_rename)
+        meminfo_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'dumpsys_meminfo_%s.txt'%process_rename)
         with open(meminfo_file, "a+",encoding="utf-8") as writer:
             writer.write(TimeUtils.getCurrentTime()+" dumpsys meminfo package info:\n")
             if out:
@@ -227,10 +227,10 @@ class MemInfoPackageCollector(object):
             pid_list_titile.extend(["package", "pid"])
         if len(self.packages)>1:
             mem_list_titile.append("total_pss(MB)")
-        mem_file = os.path.join(RuntimeData.package_save_path, 'meminfo.csv')
-        pid_file = os.path.join(RuntimeData.package_save_path, 'pid_change.csv')
+        mem_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'meminfo.csv')
+        pid_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'pid_change.csv')
         for package in self.packages:
-            pss_detail_file = os.path.join(RuntimeData.package_save_path, 'pss_%s.csv'%package.split(".")[-1].replace(":","_"))
+            pss_detail_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'pss_%s.csv'%package.split(".")[-1].replace(":","_"))
             with open(pss_detail_file, 'a+',encoding="utf-8") as df:
                 csv.writer(df, lineterminator='\n').writerow(pss_detail_titile)
         try:
@@ -265,7 +265,7 @@ class MemInfoPackageCollector(object):
                     if 0 == mem_pck_snapshot.totalPSS:
                         logger.error("package total pss is 0:%s"%package)
                         continue
-                    pss_detail_file = os.path.join(RuntimeData.package_save_path,'pss_%s.csv' % package.split(".")[-1].replace(":","_"))
+                    pss_detail_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID],'pss_%s.csv' % package.split(".")[-1].replace(":","_"))
                     pss_detail_list= [TimeUtils.formatTimeStamp(collection_time),package,mem_pck_snapshot.pid,mem_pck_snapshot.totalPSS,
                                       mem_pck_snapshot.javaHeap,mem_pck_snapshot.nativeHeap,mem_pck_snapshot.system]
                     with open(pss_detail_file, 'a+',encoding="utf-8") as pss_writer:
@@ -284,7 +284,7 @@ class MemInfoPackageCollector(object):
                                     self.device.adb.delete_file(hprof_path+"/" + file)
                 # if (before - starttime_stamp) % 60 < self._interval and "D" in self.device.adb.get_system_version():
                     for package in self.packages:
-                        self.device.adb.dumpheap(package,RuntimeData.package_save_path)
+                        self.device.adb.dumpheap(package,RuntimeData.package_save_path[self.device.adb.DEVICEID])
                     starttime_stamp = before
                     # self.device.adb.run_shell_cmd("kill -10 %s"%str(mem_pck_snapshot.pid))
                 # dumpsys meminfo 耗时长，可能会导致system server cpu占用变高，降低采集频率
@@ -322,7 +322,7 @@ class MemInfoPackageCollector(object):
                                     if package and package in RuntimeData.config_dic["pid_change_focus_package"]:
                                         # 确保有tombstones文件才提单
                                         self.device.adb.pull_file("/data/vendor/tombstones",
-                                                                  RuntimeData.package_save_path)
+                                                                  RuntimeData.package_save_path[self.device.adb.DEVICEID])
                     if pid_change:
                         old_package_pid_pss_list = mem_device_snapshot.package_pid_pss_list
                         for i in range(0, len(self.packages)):
@@ -378,9 +378,11 @@ class MemMonitor(object):
 
     def start(self,start_time):
         if not RuntimeData.package_save_path:
-            RuntimeData.package_save_path = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results', self.packages[0], start_time)
-            if not os.path.exists(RuntimeData.package_save_path):
-                os.makedirs(RuntimeData.package_save_path)
+            RuntimeData.package_save_path = {}
+        if not RuntimeData.package_save_path[self.device.adb.DEVICEID]:
+            RuntimeData.package_save_path[self.device.adb.DEVICEID] = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results', self.packages[0], start_time)
+            if not os.path.exists(RuntimeData.package_save_path[self.device.adb.DEVICEID]):
+                os.makedirs(RuntimeData.package_save_path[self.device.adb.DEVICEID])
         self.start_time = start_time
         # self.meminfo_collector.start(start_time)
         self.meminfo_package_collector.start(start_time)

@@ -304,7 +304,7 @@ class CpuCollector(object):
             return
         out = str(out,"utf-8")
         out.replace('\r','')
-        top_file = os.path.join(RuntimeData.package_save_path, 'top.txt')
+        top_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'top.txt')
         with open(top_file, "a+",encoding="utf-8") as writer:
             writer.write(TimeUtils.getCurrentTime() + " top info:\n")
             writer.write(out + "\n\n")
@@ -316,7 +316,7 @@ class CpuCollector(object):
     def get_max_freq(self):
         out = self.device.adb.run_shell_cmd("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq")
         out.replace('\r', '')
-        max_freq_file = os.path.join(RuntimeData.package_save_path, 'scaling_max_freq.txt')
+        max_freq_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'scaling_max_freq.txt')
         with open(max_freq_file, "a+",encoding="utf-8") as writer:
             writer.write(TimeUtils.getCurrentTime() + " scaling_max_freq:\n")
             writer.write(out + "\n\n")
@@ -328,7 +328,7 @@ class CpuCollector(object):
         '''
         end_time = time.time() + self._timeout
         cpu_title = ["datetime", "device_cpu_rate%", "user%", "system%","idle%"]
-        cpu_file = os.path.join(RuntimeData.package_save_path, 'cpuinfo.csv')
+        cpu_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'cpuinfo.csv')
         for i in range(0, len(self.packages)):
             cpu_title.extend(["package", "pid", "pid_cpu%"])
         if len(self.packages) > 1:
@@ -393,9 +393,11 @@ class CpuMonitor(object):
         :return:
         '''
         if not RuntimeData.package_save_path:
-            RuntimeData.package_save_path = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results', self.packages[0], start_time)
-            if not os.path.exists(RuntimeData.package_save_path):
-                os.makedirs(RuntimeData.package_save_path)
+            RuntimeData.package_save_path = {}
+        if not RuntimeData.package_save_path[self.device.adb.DEVICEID]:
+            RuntimeData.package_save_path[self.device.adb.DEVICEID] = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results', self.packages[0], start_time)
+            if not os.path.exists(RuntimeData.package_save_path[self.device.adb.DEVICEID]):
+                os.makedirs(RuntimeData.package_save_path[self.device.adb.DEVICEID])
         self.start_time = start_time
         self.cpu_collector.start(start_time)
         logger.debug("INFO: CpuMonitor has started...")

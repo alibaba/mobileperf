@@ -66,7 +66,7 @@ class ThreadNumPackageCollector(object):
         end_time = time.time() + self._timeout
         thread_list_titile = (
         "datatime", "packagename", "pid", "thread_num")
-        thread_num_file = os.path.join(RuntimeData.package_save_path, 'thread_num.csv')
+        thread_num_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'thread_num.csv')
         try:
             with open(thread_num_file, 'a+') as df:
                 csv.writer(df, lineterminator='\n').writerow(thread_list_titile)

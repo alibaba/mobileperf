@@ -195,7 +195,7 @@ class SurfaceStatsCollector(object):
     def _calculator_thread(self,start_time):
         '''处理surfaceflinger数据
         '''
-        fps_file = os.path.join(RuntimeData.package_save_path, 'fps.csv')
+        fps_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'fps.csv')
         if self.use_legacy_method:
             fps_title = ['datetime', 'fps']
         else:
@@ -504,9 +504,11 @@ class FPSMonitor(Monitor):
         '''启动FPSMonitor日志监控器 
         '''
         if not RuntimeData.package_save_path:
-            RuntimeData.package_save_path = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results', self.package, start_time)
-            if not os.path.exists(RuntimeData.package_save_path):
-                os.makedirs(RuntimeData.package_save_path)
+            RuntimeData.package_save_path = {}
+        if not RuntimeData.package_save_path[self.device.adb.DEVICEID]:
+            RuntimeData.package_save_path[self.device.adb.DEVICEID] = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results', self.package, start_time)
+            if not os.path.exists(RuntimeData.package_save_path[self.device.adb.DEVICEID]):
+                os.makedirs(RuntimeData.package_save_path[self.device.adb.DEVICEID])
         self.start_time = start_time
         self.fpscollector.start(start_time)
         logger.debug('FPS monitor has start!')

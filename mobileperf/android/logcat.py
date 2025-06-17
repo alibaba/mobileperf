@@ -58,7 +58,7 @@ class LogcatMonitor(Monitor):
         # https://developer.android.com/studio/command-line/logcat #alternativeBuffers
         # 默认缓冲区 main system crash,输出全部缓冲区
         if not self.running:
-            self.device.adb.start_logcat(RuntimeData.package_save_path, [], ' -b all')
+            self.device.adb.start_logcat(RuntimeData.package_save_path[self.device.adb.DEVICEID], [], ' -b all')
             time.sleep(1)
             self.running = True
     
@@ -100,11 +100,11 @@ class LogcatMonitor(Monitor):
         for tag in self.exception_log_list:
             if tag in log_line:
                 logger.debug("exception Info: " + log_line)
-                tmp_file = os.path.join(RuntimeData.package_save_path, 'exception.log')
+                tmp_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'exception.log')
                 with open(tmp_file, 'a+',encoding="utf-8") as f:
                     f.write(log_line + '\n')
                 #     这个路径 空格会有影响
-                process_stack_log_file = os.path.join(RuntimeData.package_save_path, 'process_stack_%s_%s.log' % (
+                process_stack_log_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'process_stack_%s_%s.log' % (
                 self.package, TimeUtils.getCurrentTimeUnderline()))
                 # 如果进程挂了，pid会变 ，抓变后进程pid的堆栈没有意义
                 # self.logmonitor.device.adb.get_process_stack(self.package,process_stack_log_file)

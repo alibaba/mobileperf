@@ -57,6 +57,8 @@ class Monkey(object):
         '''结束monkey
         '''
         self.stop_monkey()
+        if self.device.adb.is_process_running("com.android.commands.monkey"):
+            self.device.adb.kill_process("com.android.commands.monkey")
 
     def start_monkey(self, package,timeout):
         '''运行monkey进程
@@ -70,7 +72,7 @@ class Monkey(object):
                           '--pct-motion 10 --pct-trackball 0 --pct-anyevent 10 --pct-flip 0 --pct-pinchzoom 0 ' \
                           '--throttle 1000 %s' % (package, str(timeout))
         self._log_pipe = self.device.adb.run_shell_cmd(self.monkey_cmd, sync=False)
-        self._monkey_thread = threading.Thread(target=self._monkey_thread_func, args=[RuntimeData.package_save_path])
+        self._monkey_thread = threading.Thread(target=self._monkey_thread_func, args=[RuntimeData.package_save_path[self.device.adb.DEVICEID]])
         # self._monkey_thread.setDaemon(True)
         self._monkey_thread.start()
 
@@ -160,7 +162,9 @@ if __name__ == "__main__":
     start_time = TimeUtils.getCurrentTimeUnderline()
     logger.debug(start_time)
     RuntimeData.top_dir = FileUtils.get_top_dir()
-    RuntimeData.package_save_path = os.path.join(RuntimeData.top_dir, 'results', "com.alibaba.ailabs.genie.contacts", start_time)
+    if not RuntimeData.package_save_path:
+        RuntimeData.package_save_path = {}
+    RuntimeData.package_save_path[self.device.adb.DEVICEID] = os.path.join(RuntimeData.top_dir, 'results', "com.alibaba.ailabs.genie.contacts", start_time)
     main_activity = ["com.alibaba.ailabs.genie.contacts.MainActivity"]
     activity_list = ["com.alibaba.ailabs.genie.contacts.MainActivity",
                      "com.alibaba.ailabs.genie.contacts.cmd.CmdDispatchActivity",
