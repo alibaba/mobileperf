@@ -243,13 +243,15 @@ class StartUp(object):
                         logger.error(e)
                 # logcat的代码可能会引起死锁，拎出来单独处理logcat
                 try:
-                    self.logcat_monitor = LogcatMonitor(self.serialnum, self.packages[0])
+                    if not self.logcat_monitor:
+                        self.logcat_monitor = {}
+                    self.logcat_monitor[self.serialnum] = LogcatMonitor(self.serialnum, self.packages[0])
                     # 如果有异常日志标志，才启动这个模块
                     if self.exceptionlog_list:
-                        self.logcat_monitor.set_exception_list(self.exceptionlog_list)
-                        self.logcat_monitor.add_log_handle(self.logcat_monitor.handle_exception)
+                        self.logcat_monitor[self.serialnum].set_exception_list(self.exceptionlog_list)
+                        self.logcat_monitor[self.serialnum].add_log_handle(self.logcat_monitor[self.serialnum].handle_exception)
                     time.sleep(1)
-                    self.logcat_monitor.start(start_time)
+                    self.logcat_monitor[self.serialnum].start(start_time)
                 except Exception as e:
                     logger.error(e)
 
@@ -338,18 +340,21 @@ class StartUp(object):
                         for monitor in self.monitors:
                             #启动所有的monitors
                             try:
-                                monitor.start(start_time)
+                                if monitor.device.adb.DEVICEID == serialnum:
+                                    monitor.start(start_time)
                             except Exception as e:
                                 logger.error(e)
                         # logcat的代码可能会引起死锁，拎出来单独处理logcat
                         try:
-                            self.logcat_monitor = LogcatMonitor(serialnum, self.packages[0])
+                            if not self.logcat_monitor:
+                                self.logcat_monitor = {}
+                            self.logcat_monitor[serialnum] = LogcatMonitor(serialnum, self.packages[0])
                             # 如果有异常日志标志，才启动这个模块
                             if self.exceptionlog_list:
-                                self.logcat_monitor.set_exception_list(self.exceptionlog_list)
-                                self.logcat_monitor.add_log_handle(self.logcat_monitor.handle_exception)
+                                self.logcat_monitor[serialnum].set_exception_list(self.exceptionlog_list)
+                                self.logcat_monitor[serialnum].add_log_handle(self.logcat_monitor[serialnum].handle_exception)
                             time.sleep(1)
-                            self.logcat_monitor.start(start_time)
+                            self.logcat_monitor[serialnum].start(start_time)
                         except Exception as e:
                             logger.error(e)
                         # try:
@@ -411,8 +416,9 @@ class StartUp(object):
                 logger.error(e)
 
         try:
-            if self.logcat_monitor:
-                self.logcat_monitor.stop()
+            for serialnum in self.logcat_monitor.keys():
+                if self.logcat_monitor[serialnum]:
+                    self.logcat_monitor[serialnum].stop()
         except Exception as e:
             logger.error("stop exception for logcat monitor")
             logger.error(e)
