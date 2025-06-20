@@ -38,6 +38,7 @@ from mobileperf.android.devicemonitor import DeviceMonitor
 from mobileperf.android.monkey import Monkey
 from mobileperf.android.globaldata import RuntimeData
 from mobileperf.android.report import Report
+from mobileperf.android.admonitor import AdMonitor
 
 class StartUp(object):
 
@@ -49,11 +50,17 @@ class StartUp(object):
         self.config_dic = self.parse_data_from_config()
         RuntimeData.config_dic = self.config_dic
         self.serialnum = device_id if device_id != None else self.config_dic['serialnum']#代码中重新传入device_id 则会覆盖原来配置文件config.conf的值，主要为了debug方便
+        self.serialnums = device_id if device_id != None else self.config_dic['serialnums']#代码中重新传入device_id 则会覆盖原来配置文件config.conf的值，主要为了debug方便
         self.packages = package if package != None else self.config_dic['package']#代码中重新传入package 则会覆盖原来配置文件config.conf的值，为了debug方便
         self.frequency = interval if interval != None else self.config_dic['frequency']#代码中重新传入interval 则会覆盖原来配置文件config.conf的值，为了debug方便
         self.timeout = self.config_dic['timeout']
         self.exceptionlog_list = self.config_dic["exceptionlog"]
         self.device = AndroidDevice(self.serialnum)
+        self.devices = {}
+        # self.get_connected_devices()
+        if self.serialnums:
+            for serialnum in self.serialnums.split(","):
+                self.devices[serialnum] = AndroidDevice(serialnum)
         # 如果config文件中 packagename为空，就获取前台进程，匹配图兰朵，测的app太多，支持配置文件不传package
         if not self.packages:
             # 进程名不会有#，转化为list
@@ -96,6 +103,11 @@ class StartUp(object):
     def remove_monitor(self, monitor):
         self.monitors.remove(monitor)
 
+    def get_connected_devices(self):
+        result = AndroidDevice.list_local_devices()
+        logger.debug("get_connected_devices result:%s" % result)
+        return result
+
     def parse_data_from_config(self):
         '''
         从配置文件中解析出需要的信息，包名，时间间隔，设备的序列号等
@@ -125,6 +137,7 @@ class StartUp(object):
         config_dic = self.check_config_option(config_dic, paser, "Common", "dumpheap_freq")
         config_dic = self.check_config_option(config_dic, paser, "Common", "timeout")
         config_dic = self.check_config_option(config_dic, paser, "Common", "serialnum")
+        config_dic = self.check_config_option(config_dic, paser, "Common", "serialnums")
         config_dic = self.check_config_option(config_dic, paser, "Common", "mailbox")
         config_dic = self.check_config_option(config_dic, paser, "Common", "exceptionlog")
         config_dic = self.check_config_option(config_dic, paser, "Common", "save_path")
@@ -156,13 +169,13 @@ class StartUp(object):
                     else:
                         config_dic[option] = parse.get(section, option).split(";")
             except:#配置项中数值发生错误
-                if option != 'serialnum':
+                if option != 'serialnum' and option != 'serialnums':
                     logger.debug("config option error:"+option)
                     self._config_error()
                 else:
                     config_dic[option] = ''
         else:#配置项没有配置
-            if option not in ['serialnum',"main_activity","activity_list","pid_change_focus_package","shell_file"]:
+            if option not in ['serialnum',"serialnums","main_activity","activity_list","pid_change_focus_package","shell_file"]:
                 logger.debug("config option error:" + option)
                 self._config_error()
             else:
@@ -175,6 +188,10 @@ class StartUp(object):
 
     # @profile
     def run(self, time_out=None):
+        if self.serialnums:
+            self.runMultiSerial(time_out)
+            return
+
         self.clear_heapdump()
         # objgraph.show_growth()
 #       对设备连接情况的检查
@@ -212,6 +229,7 @@ class StartUp(object):
             self.add_monitor(ThreadNumMonitor(self.serialnum,self.packages[0],self.frequency,self.timeout))
             if self.config_dic["monkey"] == "true":
                 self.add_monitor(Monkey(self.serialnum, self.packages[0]))
+                self.add_monitor(AdMonitor(self.serialnum, self.packages[0], self.frequency, self.timeout))
             if self.config_dic["main_activity"] and self.config_dic["activity_list"]:
                 self.add_monitor(DeviceMonitor(self.serialnum, self.packages[0], self.frequency,self.config_dic["main_activity"],
                                                self.config_dic["activity_list"],RuntimeData.exit_event))
@@ -220,11 +238,11 @@ class StartUp(object):
                 start_time = TimeUtils.getCurrentTimeUnderline()
                 RuntimeData.start_time = start_time
                 if self.config_dic["save_path"]:
-                    RuntimeData.package_save_path = os.path.join(self.config_dic["save_path"], self.packages[0], start_time)
+                    RuntimeData.package_save_path[self.serialnum] = os.path.join(self.config_dic["save_path"], self.packages[0], start_time)
                 else:
-                    RuntimeData.package_save_path = os.path.join(RuntimeData.top_dir, 'results', self.packages[0], start_time)
-                FileUtils.makedir(RuntimeData.package_save_path)
-                self.save_device_info()
+                    RuntimeData.package_save_path[self.serialnum] = os.path.join(RuntimeData.top_dir, 'results', self.packages[0], start_time)
+                FileUtils.makedir(RuntimeData.package_save_path[self.serialnum])
+                self.save_device_info(self.serialnum)
                 for monitor in self.monitors:
                     #启动所有的monitors
                     try:
@@ -233,13 +251,15 @@ class StartUp(object):
                         logger.error(e)
                 # logcat的代码可能会引起死锁，拎出来单独处理logcat
                 try:
-                    self.logcat_monitor = LogcatMonitor(self.serialnum, self.packages[0])
+                    if not self.logcat_monitor:
+                        self.logcat_monitor = {}
+                    self.logcat_monitor[self.serialnum] = LogcatMonitor(self.serialnum, self.packages[0])
                     # 如果有异常日志标志，才启动这个模块
                     if self.exceptionlog_list:
-                        self.logcat_monitor.set_exception_list(self.exceptionlog_list)
-                        self.logcat_monitor.add_log_handle(self.logcat_monitor.handle_exception)
+                        self.logcat_monitor[self.serialnum].set_exception_list(self.exceptionlog_list)
+                        self.logcat_monitor[self.serialnum].add_log_handle(self.logcat_monitor[self.serialnum].handle_exception)
                     time.sleep(1)
-                    self.logcat_monitor.start(start_time)
+                    self.logcat_monitor[self.serialnum].start(start_time)
                 except Exception as e:
                     logger.error(e)
 
@@ -274,13 +294,128 @@ class StartUp(object):
             logger.error("Exception in run")
             logger.error(e)
 
+    def runMultiSerial(self, time_out=None):
+        # objgraph.show_growth()
+#       对设备连接情况的检查
+        logger.debug("check device connection")
+        try:
+            for serialnum in self.serialnums.split(","):
+                self.clear_heapdump(serialnum)
+                is_device_connect = False
+                for i in range(0,5):
+                    if self.devices[serialnum].adb.is_connected(serialnum):
+                        is_device_connect = True
+                        break
+                    else:
+                        logger.error("device not found:"+serialnum)
+                        time.sleep(2)
+                if not is_device_connect:
+                    logger.error("after 5 times check,device not found:" + serialnum)
+                    continue
+                # 对是否安装被测app的检查 只在最开始检查一次
+                if not self.devices[serialnum].adb.is_app_installed(self.packages[0]):
+                    logger.error("test app not installed:" + self.packages[0])
+                    return
+                try:
+                    #初始化数据处理的类,将没有消息队列传递过去，以便获取数据，并处理
+                    # datahandle = DataWorker(self.get_queue_dic())
+                    # 将queue传进去，与datahandle那个线程交互
+                    self.add_monitor(CpuMonitor(serialnum, self.packages, self.frequency, self.timeout))
+                    self.add_monitor(MemMonitor(serialnum, self.packages, self.frequency, self.timeout))
+                    self.add_monitor(TrafficMonitor(serialnum, self.packages, self.frequency, self.timeout))
+                    # 软件方式 获取电量不准，已用硬件方案测试功耗
+                    # self.add_monitor(PowerMonitor(self.serialnum, self.frequency,self.timeout))
+                    self.add_monitor(FPSMonitor(serialnum,self.packages[0],self.frequency,self.timeout))
+                    # 6.0以下能采集到fd数据，7.0以上没权限
+                    if self.devices[serialnum].adb.get_sdk_version() <= 23:
+                        self.add_monitor(FdMonitor(serialnum, self.packages[0], self.frequency,self.timeout))
+                    self.add_monitor(ThreadNumMonitor(serialnum,self.packages[0],self.frequency,self.timeout))
+                    self.add_monitor(AdMonitor(self.serialnum, self.packages[0], self.frequency, self.timeout))
+                    if self.config_dic["monkey"] == "true":
+                        self.add_monitor(Monkey(serialnum, self.packages[0]))
+                    if self.config_dic["main_activity"] and self.config_dic["activity_list"]:
+                        self.add_monitor(DeviceMonitor(serialnum, self.packages[0], self.frequency,self.config_dic["main_activity"],
+                                                    self.config_dic["activity_list"],RuntimeData.exit_event))
+
+                    if len(self.monitors):
+                        start_time = TimeUtils.getCurrentTimeUnderline()
+                        RuntimeData.start_time = start_time
+                        if self.config_dic["save_path"]:
+                            RuntimeData.package_save_path[serialnum] = os.path.join(self.config_dic["save_path"], serialnum, self.packages[0], start_time)
+                        else:
+                            RuntimeData.package_save_path[serialnum] = os.path.join(RuntimeData.top_dir, 'results', serialnum, self.packages[0], start_time)
+                        FileUtils.makedir(RuntimeData.package_save_path[serialnum])
+                        self.save_device_info(serialnum)
+                        for monitor in self.monitors:
+                            #启动所有的monitors
+                            try:
+                                if monitor.device.adb.DEVICEID == serialnum:
+                                    monitor.start(start_time)
+                            except Exception as e:
+                                logger.error(e)
+                        # logcat的代码可能会引起死锁，拎出来单独处理logcat
+                        try:
+                            if not self.logcat_monitor:
+                                self.logcat_monitor = {}
+                            self.logcat_monitor[serialnum] = LogcatMonitor(serialnum, self.packages[0])
+                            # 如果有异常日志标志，才启动这个模块
+                            if self.exceptionlog_list:
+                                self.logcat_monitor[serialnum].set_exception_list(self.exceptionlog_list)
+                                self.logcat_monitor[serialnum].add_log_handle(self.logcat_monitor[serialnum].handle_exception)
+                            time.sleep(1)
+                            self.logcat_monitor[serialnum].start(start_time)
+                        except Exception as e:
+                            logger.error(e)
+                        # try:
+                        #     datahandle.stop()
+                        #     time.sleep(self.frequency*2)
+                        #     #               延迟一点时间结束上报，已让数据上报完
+                        #     # report.stop()
+                        # except:
+                        #     logger.debug("report or datahandle stop exception")
+                        # finally:
+                        #     logger.info("time is up, end")
+                        #     os._exit(0)
+                except Exception as e:
+                    logger.error("Exception in run")
+                    logger.error(e)
+                    e.with_traceback()
+
+            if len(self.monitors) > 0:
+                timeout = time_out if time_out != None else self.config_dic['timeout']
+                endtime = time.time() + timeout
+                while (time.time() < endtime):#吊着主线程防止线程中断
+                    # 时间到或测试过程中检测到异常
+                    if self.check_exit_signal_quit():
+                        logger.error("app " + str(self.packages[0]) + " exit signal, quit!")
+                        break
+                    time.sleep(self.frequency)
+                logger.debug("time is up,finish!!!")
+                self.stop()
+        except KeyboardInterrupt:#捕获键盘异常的事件，例如ctrl c
+            logger.debug(" catch keyboardInterrupt, goodbye!!!")
+            # 收尾工作
+            self.stop()
+            os._exit(0)
+        except Exception as e:
+            logger.error("Exception in run")
+            logger.error(e)
+            e.with_traceback()
+
     #     测试前清空 tmp 目录下dump文件 清理超过一周的文件，避免同时测试会有冲突
-    def clear_heapdump(self):
-        filelist = self.device.adb.list_dir("/data/local/tmp")
-        if filelist:
-            for file in filelist:
-                if self.packages[0] in file and self.device.adb.is_overtime_days("/data/local/tmp/"+file,3):
-                    self.device.adb.delete_file("/data/local/tmp/%s" % file)
+    def clear_heapdump(self, serialnum=None):
+        if serialnum and serialnum in self.devices.keys(): 
+            filelist = self.devices[serialnum].adb.list_dir("/data/local/tmp")
+            if filelist:
+                for file in filelist:
+                    if self.packages[0] in file and self.devices[serialnum].adb.is_overtime_days("/data/local/tmp/"+file,3):
+                        self.devices[serialnum].adb.delete_file("/data/local/tmp/%s" % file)
+        else:
+            filelist = self.device.adb.list_dir("/data/local/tmp")
+            if filelist:
+                for file in filelist:
+                    if self.packages[0] in file and self.device.adb.is_overtime_days("/data/local/tmp/"+file,3):
+                        self.device.adb.delete_file("/data/local/tmp/%s" % file)
 
     def stop(self):
         for monitor in self.monitors:
@@ -290,20 +425,35 @@ class StartUp(object):
                 logger.error(e)
 
         try:
-            if self.logcat_monitor:
-                self.logcat_monitor.stop()
+            for serialnum in self.logcat_monitor.keys():
+                if self.logcat_monitor[serialnum]:
+                    self.logcat_monitor[serialnum].stop()
         except Exception as e:
             logger.error("stop exception for logcat monitor")
             logger.error(e)
-        if self.config_dic["monkey"] =="true":
-            self.device.adb.kill_process("com.android.commands.monkey")
+        # if self.config_dic["monkey"] =="true":
+        #     if self.serialnums:
+        #         for serialnum in self.serialnums:
+        #             self.devices[serialnum].adb.kill_process("com.android.commands.monkey")
+        #     else:
+        #         self.device.adb.kill_process("com.android.commands.monkey")
         # 统计测试时长
         cost_time =round((float) (time.time() - TimeUtils.getTimeStamp(RuntimeData.start_time,TimeUtils.UnderLineFormatter))/3600,2)
-        self.add_device_info("test cost time:",str(cost_time)+"h")
+        
         # 根据csv生成excel汇总文件
-        Report(RuntimeData.package_save_path,self.packages)
-        self.pull_heapdump()
-        self.pull_log_files()
+        if self.serialnums:
+            for serialnum in RuntimeData.package_save_path.keys():
+                logger.debug("serialnum: " + serialnum + ", serialnum in self.devices: " + str(serialnum in RuntimeData.package_save_path.keys()))
+                if serialnum in RuntimeData.package_save_path.keys():
+                    self.add_device_info(serialnum, "test cost time:",str(cost_time)+"h")
+                    Report(RuntimeData.package_save_path[serialnum] + "/",self.packages)
+                    self.pull_heapdump(serialnum)
+                    self.pull_log_files(serialnum)
+        else:
+            self.add_device_info(self.serialnum, "test cost time:",str(cost_time)+"h")
+            Report(RuntimeData.package_save_path[self.serialnum] + "/",self.packages)
+            self.pull_heapdump()
+            self.pull_log_files()
         # self.memory_analyse()
         # self.device.adb.bugreport(RuntimeData.package_save_path)
         os._exit(0)
@@ -324,34 +474,43 @@ class StartUp(object):
 
 
 
-    def pull_heapdump(self):
+    def pull_heapdump(self, serialnum=None):
         # 把dumpheap文件拷贝出来
-        filelist = self.device.adb.list_dir("/data/local/tmp")
+        if serialnum and serialnum in RuntimeData.package_save_path.keys():
+            filelist = self.devices[serialnum].adb.list_dir("/data/local/tmp")
+        else:
+            filelist = self.device.adb.list_dir("/data/local/tmp")
         if filelist:
             for file in filelist:
                 if self.packages[0] in file:
-                    self.device.adb.pull_file("/data/local/tmp/%s" % file, RuntimeData.package_save_path)
+                    if serialnum and serialnum in RuntimeData.package_save_path.keys():
+                        self.devices[serialnum].adb.pull_file("/data/local/tmp/%s" % file, RuntimeData.package_save_path[serialnum])
+                    else:
+                        self.device.adb.pull_file("/data/local/tmp/%s" % file, RuntimeData.package_save_path[self.serialnum])
 
-    def pull_log_files(self):
+    def pull_log_files(self, serialnum=None):
         if self.config_dic["phone_log_path"]:
             for src_path in self.config_dic["phone_log_path"]:
-                self.device.adb.pull_file(src_path, RuntimeData.package_save_path)
+                if serialnum and serialnum in RuntimeData.package_save_path.keys():
+                    self.devices[serialnum].adb.pull_file(src_path, RuntimeData.package_save_path[serialnum])
+                else:
+                    self.device.adb.pull_file(src_path, RuntimeData.package_save_path[self.serialnum])
                 # self.device.adb.pull_file_between_time(src_path,RuntimeData.package_save_path,
                 #             TimeUtils.getTimeStamp(RuntimeData.start_time,TimeUtils.UnderLineFormatter),time.time())
         #         release系统pull  /sdcard/mtklog/可以  没有权限/sdcard/mtklog/mobilelog
 
 
-    def save_device_info(self):
-        device_file = os.path.join(RuntimeData.package_save_path,"device_test_info.txt")
+    def save_device_info(self, device_id):
+        device_file = os.path.join(RuntimeData.package_save_path[device_id],"device_test_info.txt")
         with open(device_file,"w+",encoding="utf-8") as writer:
-            writer.write("device serialnum:"+self.serialnum+"\n")
+            writer.write("device serialnum:"+device_id+"\n")
             writer.write("device model:"+self.device.adb.get_phone_brand()+" "+self.device.adb.get_phone_model()+"\n")
             writer.write("test package:" + self.packages[0] + "\n")
             writer.write("system version:"+self.device.adb.get_system_version()+"\n")
             writer.write("test package ver:" + self.device.adb.get_package_ver(self.packages[0]) + "\n")
 
-    def add_device_info(self,key,value):
-        device_file = os.path.join(RuntimeData.package_save_path,"device_test_info.txt")
+    def add_device_info(self,device_id, key, value):
+        device_file = os.path.join(RuntimeData.package_save_path[device_id],"device_test_info.txt")
         with open(device_file,"a+",encoding="utf-8") as writer:
             writer.write(key+":"+value+"\n")
 

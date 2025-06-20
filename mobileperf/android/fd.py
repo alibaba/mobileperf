@@ -67,7 +67,7 @@ class FdInfoPackageCollector(object):
     def _collect_fd_thread(self, start_time):
         end_time = time.time() + self._timeout
         fd_list_titile = ("datatime", "packagename", "pid", "fd_num")
-        fd_file = os.path.join(RuntimeData.package_save_path, 'fd_num.csv')
+        fd_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'fd_num.csv')
         try:
             with open(fd_file, 'a+') as df:
                 csv.writer(df, lineterminator='\n').writerow(fd_list_titile)

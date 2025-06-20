@@ -15,7 +15,7 @@ class RuntimeData():
     # 记录pid变更前的pid
     old_pid = None
     packages = None
-    package_save_path = None
+    package_save_path = {}
     start_time = None
     exit_event = threading.Event()
     top_dir = None

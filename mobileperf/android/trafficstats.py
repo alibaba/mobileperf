@@ -250,7 +250,7 @@ class TrafficCollecor(object):
         traffic_list_title = (
         "datetime", "packagename", "uid", "uid_total(KB)", "uid_total_packets", "rx(KB)", "rx_packets", "tx(KB)",
         "tx_packets", "fg(KB)", "bg(KB)", "lo(KB)")
-        traffic_file = os.path.join(RuntimeData.package_save_path, 'traffics_uid.csv')
+        traffic_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'traffics_uid.csv')
         try:
             with open(traffic_file, 'a+') as df:
                 csv.writer(df, lineterminator='\n').writerow(traffic_list_title)
@@ -323,7 +323,7 @@ class TrafficCollecor(object):
     def get_traffic_with_dev(self):
         end_time = time.time() + self._timeout
         traffic_title = ["datetime", "device_total(KB)", "device_receive(KB)", "device_transport(KB)"]
-        traffic_file = os.path.join(RuntimeData.package_save_path, 'traffic.csv')
+        traffic_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'traffic.csv')
         for i in range(0, len(self.packages)):
             traffic_title.extend(["package", "pid", "pid_rx(KB)","pid_tx(KB)","pid_total(KB)"])
         if len(self.packages) > 1:
@@ -458,9 +458,11 @@ class TrafficMonitor(object):
 
     def start(self,start_time):
         if not RuntimeData.package_save_path:
-            RuntimeData.package_save_path = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results', self.packages[0], start_time)
-            if not os.path.exists(RuntimeData.package_save_path):
-                os.makedirs(RuntimeData.package_save_path)
+            RuntimeData.package_save_path = {}
+        if not RuntimeData.package_save_path[self.device.adb.DEVICEID]:
+            RuntimeData.package_save_path[self.device.adb.DEVICEID] = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results', self.packages[0], start_time)
+            if not os.path.exists(RuntimeData.package_save_path[self.device.adb.DEVICEID]):
+                os.makedirs(RuntimeData.package_save_path[self.device.adb.DEVICEID])
         self.start_time = start_time
         self.traffic_colloctor.start(start_time)
         logger.debug("INFO: TrafficMonitor has started...")

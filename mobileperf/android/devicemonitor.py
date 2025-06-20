@@ -65,7 +65,7 @@ class DeviceMonitor(object):
 
     def _activity_monitor_thread(self):
         activity_title = ("datetime", "current_activity")
-        self.activity_file = os.path.join(RuntimeData.package_save_path, 'current_activity.csv')
+        self.activity_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'current_activity.csv')
         try:
             with open(self.activity_file, 'a+') as af:
                 csv.writer(af, lineterminator='\n').writerow(activity_title)

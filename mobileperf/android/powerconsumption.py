@@ -157,7 +157,7 @@ class PowerCollector(object):
         '''
         end_time = time.time() + self._timeout
         power_list_titile = ("datetime","level","voltage(V)","tempreture(C)","current(mA)")
-        power_device_file = os.path.join(RuntimeData.package_save_path, 'powerinfo.csv')
+        power_device_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'powerinfo.csv')
         try:
             with open(power_device_file, 'a+') as df:
                 csv.writer(df, lineterminator='\n').writerow(power_list_titile)
@@ -231,9 +231,11 @@ class PowerMonitor(object):
 
     def start(self,start_time):
         if not RuntimeData.package_save_path:
-            RuntimeData.package_save_path = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results',self.device.adb._device_id,start_time)
-            if not os.path.exists(RuntimeData.package_save_path):
-                os.makedirs(RuntimeData.package_save_path)
+            RuntimeData.package_save_path = {}
+        if not RuntimeData.package_save_path[self.device.adb.DEVICEID]:
+            RuntimeData.package_save_path[self.device.adb.DEVICEID] = os.path.join(os.path.abspath(os.path.join(os.getcwd(), "../..")),'results',self.device.adb._device_id,start_time)
+            if not os.path.exists(RuntimeData.package_save_path[self.device.adb.DEVICEID]):
+                os.makedirs(RuntimeData.package_save_path[self.device.adb.DEVICEID])
         self.start_time = start_time
         self.power_collector.start(start_time)
         logger.debug("INFO: PowerMonitor has started...")

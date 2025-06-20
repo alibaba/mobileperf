@@ -31,6 +31,14 @@ class Report(object):
                                            "x_axis": "datatime",
                                            "y_axis": "pid_num",
                                            "values": ["pid"]},
+                               "thread_num.csv": {"table_name": "thread_num",
+                                           "x_axis": "datatime",
+                                           "y_axis": "thread_num",
+                                           "values": ["thread_num"]},
+                                "fps.csv": {"table_name": "fps",
+                                           "x_axis": "datatime",
+                                           "y_axis": "fps-jank",
+                                           "values": ["fps","jank"]},
                                }
         self.packages = packages
         if len(self.packages)>0:

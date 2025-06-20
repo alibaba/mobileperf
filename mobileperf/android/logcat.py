@@ -58,7 +58,7 @@ class LogcatMonitor(Monitor):
         # https://developer.android.com/studio/command-line/logcat #alternativeBuffers
         # 默认缓冲区 main system crash,输出全部缓冲区
         if not self.running:
-            self.device.adb.start_logcat(RuntimeData.package_save_path, [], ' -b all')
+            self.device.adb.start_logcat(RuntimeData.package_save_path[self.device.adb.DEVICEID], [], ' -b all')
             time.sleep(1)
             self.running = True
     
@@ -100,11 +100,11 @@ class LogcatMonitor(Monitor):
         for tag in self.exception_log_list:
             if tag in log_line:
                 logger.debug("exception Info: " + log_line)
-                tmp_file = os.path.join(RuntimeData.package_save_path, 'exception.log')
+                tmp_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'exception.log')
                 with open(tmp_file, 'a+',encoding="utf-8") as f:
                     f.write(log_line + '\n')
                 #     这个路径 空格会有影响
-                process_stack_log_file = os.path.join(RuntimeData.package_save_path, 'process_stack_%s_%s.log' % (
+                process_stack_log_file = os.path.join(RuntimeData.package_save_path[self.device.adb.DEVICEID], 'process_stack_%s_%s.log' % (
                 self.package, TimeUtils.getCurrentTimeUnderline()))
                 # 如果进程挂了，pid会变 ，抓变后进程pid的堆栈没有意义
                 # self.logmonitor.device.adb.get_process_stack(self.package,process_stack_log_file)
@@ -117,6 +117,7 @@ class LaunchTime(object):
     def __init__(self,deviceid, packagename = ""):
         # 列表的容积应该不用担心，与系统有一定关系，一般存几十万条数据没问题的
         self.launch_list = [("datetime","packagenme/activity","this_time(s)","total_time(s)","launchtype")]
+        self.serialnum = deviceid
         self.packagename = packagename
 
     def handle_launchtime(self, log_line):
@@ -127,7 +128,7 @@ class LaunchTime(object):
         #如果监控到到fully drawn这样的log，则优先统计这种log，它表示了到起始界面自定义界面的启动时间
         :return:void
         '''
-        # logger.debug(log_line)
+        # logger.debug("------handle_launchtime:    " + log_line)
         # 08-28 10:57:30.229 18882 19137 D IC5: CLogProducer == > code = 0, uuid = 4FE71E350379C64611CCD905938C10CA, eventType = performance, eventName = am_activity_launch_timeme, \
         #    log_time = 2019-08-28 10:57:30.229, contextInfo = {"tag": "am_activity_launch_time", "start_time": "2019-08-28 10:57:16",
         #                              "activity_name_original": "com.android.settings\/.FallbackHome",
@@ -169,7 +170,7 @@ class LaunchTime(object):
     def update_launch_list(self, content,timestamp):
         # if self.packagename in content[1]:
         self.launch_list.append(content)
-        tmp_file = os.path.join(RuntimeData.package_save_path, 'launch_logcat.csv')
+        tmp_file = os.path.join(RuntimeData.package_save_path[self.serialnum], 'launch_logcat.csv')
         perf_data = {"task_id":"",'launch_time':[],'cpu':[],"mem":[],
                          'traffic':[], "fluency":[],'power':[],}
         dic = {"time": timestamp,

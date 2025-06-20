@@ -31,10 +31,14 @@ mobileperf is python PC 工具，可以收集Android性能数据: cpu 内存 流
 - 稳定性好，能连续运行72小时以上
 - 少量占用PC资源，消耗PC内存约12M左右
 
+- 支持多设备同时测试（wjq123521）
+
 ## 使用方法
 
 - 安装python3.7 [python下载链接](https://www.python.org/downloads/)，加入到环境变量中，执行python --version，确保是python3
 - 安装adb，确保adb devices能找到设备
 - 修改配置文件，示例参考根目录下config.conf
+
+- 多设备测试，配置文件中serialnums，用分号分割： serialnums=24251FDF6001BM,ZY322SQQRG,ZY22DXTT48
 
 - 运行，mac、linux 在mobileperf工具根目录下执行sh run.sh，windows 双击run.bat，结束测试，等待设置测试时长到或按Ctrl+C
