@@ -1,0 +1,3 @@
+# 忽略所有子目录下的 __pycache__ 目录
+**/__pycache__/
+logs/

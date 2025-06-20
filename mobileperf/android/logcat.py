@@ -117,6 +117,7 @@ class LaunchTime(object):
     def __init__(self,deviceid, packagename = ""):
         # 列表的容积应该不用担心，与系统有一定关系，一般存几十万条数据没问题的
         self.launch_list = [("datetime","packagenme/activity","this_time(s)","total_time(s)","launchtype")]
+        self.serialnum = deviceid
         self.packagename = packagename
 
     def handle_launchtime(self, log_line):
@@ -127,7 +128,7 @@ class LaunchTime(object):
         #如果监控到到fully drawn这样的log，则优先统计这种log，它表示了到起始界面自定义界面的启动时间
         :return:void
         '''
-        # logger.debug(log_line)
+        # logger.debug("------handle_launchtime:    " + log_line)
         # 08-28 10:57:30.229 18882 19137 D IC5: CLogProducer == > code = 0, uuid = 4FE71E350379C64611CCD905938C10CA, eventType = performance, eventName = am_activity_launch_timeme, \
         #    log_time = 2019-08-28 10:57:30.229, contextInfo = {"tag": "am_activity_launch_time", "start_time": "2019-08-28 10:57:16",
         #                              "activity_name_original": "com.android.settings\/.FallbackHome",
@@ -169,7 +170,7 @@ class LaunchTime(object):
     def update_launch_list(self, content,timestamp):
         # if self.packagename in content[1]:
         self.launch_list.append(content)
-        tmp_file = os.path.join(RuntimeData.package_save_path, 'launch_logcat.csv')
+        tmp_file = os.path.join(RuntimeData.package_save_path[self.serialnum], 'launch_logcat.csv')
         perf_data = {"task_id":"",'launch_time':[],'cpu':[],"mem":[],
                          'traffic':[], "fluency":[],'power':[],}
         dic = {"time": timestamp,

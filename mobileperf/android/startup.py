@@ -38,6 +38,7 @@ from mobileperf.android.devicemonitor import DeviceMonitor
 from mobileperf.android.monkey import Monkey
 from mobileperf.android.globaldata import RuntimeData
 from mobileperf.android.report import Report
+from mobileperf.android.admonitor import AdMonitor
 
 class StartUp(object):
 
@@ -56,6 +57,7 @@ class StartUp(object):
         self.exceptionlog_list = self.config_dic["exceptionlog"]
         self.device = AndroidDevice(self.serialnum)
         self.devices = {}
+        # self.get_connected_devices()
         if self.serialnums:
             for serialnum in self.serialnums.split(","):
                 self.devices[serialnum] = AndroidDevice(serialnum)
@@ -100,6 +102,11 @@ class StartUp(object):
 
     def remove_monitor(self, monitor):
         self.monitors.remove(monitor)
+
+    def get_connected_devices(self):
+        result = AndroidDevice.list_local_devices()
+        logger.debug("get_connected_devices result:%s" % result)
+        return result
 
     def parse_data_from_config(self):
         '''
@@ -222,6 +229,7 @@ class StartUp(object):
             self.add_monitor(ThreadNumMonitor(self.serialnum,self.packages[0],self.frequency,self.timeout))
             if self.config_dic["monkey"] == "true":
                 self.add_monitor(Monkey(self.serialnum, self.packages[0]))
+                self.add_monitor(AdMonitor(self.serialnum, self.packages[0], self.frequency, self.timeout))
             if self.config_dic["main_activity"] and self.config_dic["activity_list"]:
                 self.add_monitor(DeviceMonitor(self.serialnum, self.packages[0], self.frequency,self.config_dic["main_activity"],
                                                self.config_dic["activity_list"],RuntimeData.exit_event))
@@ -322,6 +330,7 @@ class StartUp(object):
                     if self.devices[serialnum].adb.get_sdk_version() <= 23:
                         self.add_monitor(FdMonitor(serialnum, self.packages[0], self.frequency,self.timeout))
                     self.add_monitor(ThreadNumMonitor(serialnum,self.packages[0],self.frequency,self.timeout))
+                    self.add_monitor(AdMonitor(self.serialnum, self.packages[0], self.frequency, self.timeout))
                     if self.config_dic["monkey"] == "true":
                         self.add_monitor(Monkey(serialnum, self.packages[0]))
                     if self.config_dic["main_activity"] and self.config_dic["activity_list"]:
