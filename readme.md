@@ -25,7 +25,7 @@ mobileperf is python PC 工具，可以收集Android性能数据: cpu 内存 流
 
 ## 特性
 
-- 支持Android5.0-10.0，兼容性好
+- 支持Android6.0-16，兼容性好
 - 无需root设备，无需集成SDK，非侵入式，使用成本低
 - 支持mac linux windows
 - 稳定性好，能连续运行72小时以上

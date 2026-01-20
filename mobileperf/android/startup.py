@@ -207,8 +207,8 @@ class StartUp(object):
             # self.add_monitor(PowerMonitor(self.serialnum, self.frequency,self.timeout))
             self.add_monitor(FPSMonitor(self.serialnum,self.packages[0],self.frequency,self.timeout))
             # 6.0以下能采集到fd数据，7.0以上没权限
-            if self.device.adb.get_sdk_version() <= 23:
-                self.add_monitor(FdMonitor(self.serialnum, self.packages[0], self.frequency,self.timeout))
+            # if self.device.adb.get_sdk_version() <= 23:
+            self.add_monitor(FdMonitor(self.serialnum, self.packages[0], self.frequency,self.timeout))
             self.add_monitor(ThreadNumMonitor(self.serialnum,self.packages[0],self.frequency,self.timeout))
             if self.config_dic["monkey"] == "true":
                 self.add_monitor(Monkey(self.serialnum, self.packages[0]))

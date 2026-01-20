@@ -230,7 +230,12 @@ class MemInfoPackageCollector(object):
         mem_file = os.path.join(RuntimeData.package_save_path, 'meminfo.csv')
         pid_file = os.path.join(RuntimeData.package_save_path, 'pid_change.csv')
         for package in self.packages:
-            pss_detail_file = os.path.join(RuntimeData.package_save_path, 'pss_%s.csv'%package.split(".")[-1].replace(":","_"))
+            #子进程名太长，生成图表会有异常 Excel worksheet name 'pss_AlipayGphone_sandboxed_privilege_process0' must be <= 31 chars.
+            if ":" in package:
+                pss_detail_file = os.path.join(RuntimeData.package_save_path, 'pss_%s.csv'%package.split(":")[-1])
+            else:
+                pss_detail_file = os.path.join(RuntimeData.package_save_path,
+                                               'pss_%s.csv' % package.split(".")[-1].replace(":", "_"))
             with open(pss_detail_file, 'a+',encoding="utf-8") as df:
                 csv.writer(df, lineterminator='\n').writerow(pss_detail_titile)
         try:
@@ -265,7 +270,12 @@ class MemInfoPackageCollector(object):
                     if 0 == mem_pck_snapshot.totalPSS:
                         logger.error("package total pss is 0:%s"%package)
                         continue
-                    pss_detail_file = os.path.join(RuntimeData.package_save_path,'pss_%s.csv' % package.split(".")[-1].replace(":","_"))
+                    if ":" in package:
+                        pss_detail_file = os.path.join(RuntimeData.package_save_path,
+                                                       'pss_%s.csv' % package.split(":")[-1])
+                    else:
+                        pss_detail_file = os.path.join(RuntimeData.package_save_path,
+                                                       'pss_%s.csv' % package.split(".")[-1].replace(":", "_"))
                     pss_detail_list= [TimeUtils.formatTimeStamp(collection_time),package,mem_pck_snapshot.pid,mem_pck_snapshot.totalPSS,
                                       mem_pck_snapshot.javaHeap,mem_pck_snapshot.nativeHeap,mem_pck_snapshot.system]
                     with open(pss_detail_file, 'a+',encoding="utf-8") as pss_writer:
@@ -400,7 +410,7 @@ class MemMonitor(object):
 
 if __name__ == "__main__":
     # RuntimeData.package_save_path = "/Users/look/Desktop/project/mobileperf-mac/results/com.yunos.tv.alitvasr/2019_03_25_22_07_57"
-    monitor = MemMonitor("85I7UO4PFQCINJL7",["com.yunos.tv.alitvasr"],5)
+    monitor = MemMonitor("7e048cbb",["com.eg.android.AlipayGphone"],5)
     monitor.start(TimeUtils.getCurrentTimeUnderline())
     time.sleep(300)
     monitor.stop()

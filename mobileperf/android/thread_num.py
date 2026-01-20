@@ -52,20 +52,22 @@ class ThreadNumPackageCollector(object):
 
     def get_process_thread_num(self, process):
         pid = self.device.adb.get_pid_from_pck(self.packagename)
-        out = self.device.adb.run_shell_cmd('ls -lt /proc/%s/task' % pid)
+        # out = self.device.adb.run_shell_cmd('ls -lt /proc/%s/task' % pid)
+        out = self.device.adb.run_shell_cmd('cat /proc/%s/status' % pid)
         collection_time = time.time()
         logger.debug("collection time in thread_num info is : " + str(collection_time))
         if out:
             # logger.debug("thread num out:"+out)
-            thread_num = len(out.split("\n"))
-            return [collection_time,self.packagename,pid,thread_num]
+            threads_match = re.search(r'Threads:\s+(\d+)', out)
+            if threads_match:
+                thread_num = int(threads_match.group(1))
+                return [collection_time,self.packagename,pid,thread_num]
         else:
             return []
 
     def _collect_thread_num_thread(self, start_time):
         end_time = time.time() + self._timeout
-        thread_list_titile = (
-        "datatime", "packagename", "pid", "thread_num")
+        thread_list_titile = ("datatime", "packagename", "pid", "thread_num")
         thread_num_file = os.path.join(RuntimeData.package_save_path, 'thread_num.csv')
         try:
             with open(thread_num_file, 'a+') as df:
@@ -133,7 +135,8 @@ class ThreadNumMonitor(object):
         pass
 
 if __name__ == "__main__":
-    monitor = ThreadNumMonitor("","com.yunos.tv.alitvasr",3)
+    RuntimeData.package_save_path = '/Users/look/Documents/code/mobileperf-master/results/com.eg.android.AlipayGphone'
+    monitor = ThreadNumMonitor("7e048cbb","com.eg.android.AlipayGphone",3)
     monitor.start(TimeUtils.getCurrentTime())
     time.sleep(20)
     monitor.stop()

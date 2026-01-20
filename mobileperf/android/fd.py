@@ -55,12 +55,15 @@ class FdInfoPackageCollector(object):
         # pid发生变化 ，更新old_pid,这个时间间隔长
         if None == RuntimeData.old_pid or RuntimeData.old_pid!=pid:
             RuntimeData.old_pid = pid
-        out = self.device.adb.run_shell_cmd('ls -lt /proc/%s/fd' % pid)
+        #out = self.device.adb.run_shell_cmd('ls -lt /proc/%s/fd' % pid)
+        out = self.device.adb.run_shell_cmd('cat /proc/%s/status' % pid)
         collection_time = time.time()
         logger.debug("collection time in fd info is : " + str(collection_time))
         if out:
-            fd_num = len(out.split("\n"))
-            return [collection_time,self.packagename,pid,fd_num]
+            fd_match = re.search(r'FDSize:\s+(\d+)', out)
+            if fd_match:
+                fd_num = int(fd_match.group(1))
+                return [collection_time, self.packagename, pid, fd_num]
         else:
             return []
 
@@ -133,7 +136,8 @@ class FdMonitor(object):
         pass
 
 if __name__ == "__main__":
-    monitor = FdMonitor("","com.yunos.tv.alitvasr",3)
+    RuntimeData.package_save_path = '/Users/look/Documents/github/mobileperf/results/com.eg.android.AlipayGphone'
+    monitor = FdMonitor("7e048cbb","com.eg.android.AlipayGphone",3)
     monitor.start(TimeUtils.getCurrentTime())
     time.sleep(20)
     monitor.stop()
