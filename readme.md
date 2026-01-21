@@ -5,7 +5,7 @@ mobileperf is a Python PC tool  that can collect Android performance data: cpu,m
 
 ## Features
 
- * Support most versions of Android OS from 5.0 to 10.0
+ * Support most versions of Android OS from 6.0 to 16
  * No need root device,no need integrate SDK
  * Support Mac, linux, windows
  * Good stability, can run continuously for more than 72 hours

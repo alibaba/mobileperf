@@ -44,8 +44,11 @@ class Report(object):
                                           "y_axis":"mem(MB)",
                                           "values":["pss","java_heap","native_heap","system"]
                 }
-                #        文件名太长会导致写excel失败
-                self.summary_csf_file["pss_%s.csv"%package.split(".")[-1].replace(":","_")]= pss_detail_dic
+                if ":" in package:
+                    #        子进程太长会导致写excel失败
+                    self.summary_csf_file["pss_%s.csv" % package.split(":")[-1].split(".")[-1]] = pss_detail_dic
+                else:
+                    self.summary_csf_file["pss_%s.csv" % package] = pss_detail_dic
         logger.debug(self.packages)
         logger.debug(self.summary_csf_file)
         logger.info('create report for %s' % csv_dir)

@@ -232,10 +232,10 @@ class MemInfoPackageCollector(object):
         for package in self.packages:
             #子进程名太长，生成图表会有异常 Excel worksheet name 'pss_AlipayGphone_sandboxed_privilege_process0' must be <= 31 chars.
             if ":" in package:
-                pss_detail_file = os.path.join(RuntimeData.package_save_path, 'pss_%s.csv'%package.split(":")[-1])
+                pss_detail_file = os.path.join(RuntimeData.package_save_path, 'pss_%s.csv'%package.split(":")[-1].split(".")[-1])
             else:
                 pss_detail_file = os.path.join(RuntimeData.package_save_path,
-                                               'pss_%s.csv' % package.split(".")[-1].replace(":", "_"))
+                                               'pss_%s.csv' % package)
             with open(pss_detail_file, 'a+',encoding="utf-8") as df:
                 csv.writer(df, lineterminator='\n').writerow(pss_detail_titile)
         try:
@@ -272,10 +272,10 @@ class MemInfoPackageCollector(object):
                         continue
                     if ":" in package:
                         pss_detail_file = os.path.join(RuntimeData.package_save_path,
-                                                       'pss_%s.csv' % package.split(":")[-1])
+                                                       'pss_%s.csv' % package.split(":")[-1].split(".")[-1])
                     else:
                         pss_detail_file = os.path.join(RuntimeData.package_save_path,
-                                                       'pss_%s.csv' % package.split(".")[-1].replace(":", "_"))
+                                                       'pss_%s.csv' % package)
                     pss_detail_list= [TimeUtils.formatTimeStamp(collection_time),package,mem_pck_snapshot.pid,mem_pck_snapshot.totalPSS,
                                       mem_pck_snapshot.javaHeap,mem_pck_snapshot.nativeHeap,mem_pck_snapshot.system]
                     with open(pss_detail_file, 'a+',encoding="utf-8") as pss_writer:
